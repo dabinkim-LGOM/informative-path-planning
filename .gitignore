@@ -5,7 +5,6 @@ experiments/*
 old_experiments/*
 old_exp/*
 *.png
-*.txt
 *.npy
 backup/*
 channel_world_exps/*

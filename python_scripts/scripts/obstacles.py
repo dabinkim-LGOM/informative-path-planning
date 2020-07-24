@@ -77,9 +77,6 @@ class BlockWorld():
 					return True
 		return False
 
-
-
-
 	def draw_obstacles(self):
 		'''
 		Visualizer for the obstacles

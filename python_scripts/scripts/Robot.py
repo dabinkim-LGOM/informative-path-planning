@@ -311,7 +311,9 @@ class Nonmyopic_Robot(Robot):
 
             # mcts = mc_lib.cMCTS(self.comp_budget, self.GP, self.loc, self.roll_length, self.path_generator, self.aquisition_function, self.f_rew, t, None, False, 'dpw')
             # # best_path, best, cost = mcts.get_best_child()      
-            # sampling_path, best_path, best_val, all_paths, all_values, self.max_locs, self.max_val, self.target = mcts.choose_trajectory(t=t)
+
+            #TODO: Is this necessary?? Figure out whether it is. 
+            # sampling_path, best_path, best_val, all_paths, all_values, self.max_locs, self.max_val, self.target = self.choose_trajectory(T=T, t=t)
 #             print best_path
             data = np.array(best_path)
             x1 = data[:,0]

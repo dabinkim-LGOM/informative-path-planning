@@ -285,7 +285,9 @@ class MCTS():
         # print("Samples: ")
         # print(obs)
         if(self.aquisition_function==aqlib.mves ):
-            return self.aquisition_function(time = self.t, xvals = obs, param= [None], robot_model = sim_world)
+            #TODO: Fix the paramter setting. This leads to wrong MES acquisition function computation.
+            # maxes, locs, funcs = sample_max_vals(robot_model=sim_world, t=t, nK = 3, nFeatures = 200, visualize = False, obstacles=obslib.FreeWorld(), f_rew='mes'): 
+            return self.aquisition_function(time = self.t, xvals = obs, param= (self.max_val, self.max_locs, self.target), robot_model = sim_world)
         else:
             return self.aquisition_function(time = self.t, xvals = obs, robot_model = sim_world)
     

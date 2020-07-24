@@ -5,6 +5,7 @@ import itertools
 # import cv2 
 import vis_grid_map as vis 
 from continuous import *
+import GridMap_library as gd_lib 
 
 if __name__ == "__main__":
     '''
@@ -20,34 +21,36 @@ if __name__ == "__main__":
     block_y = 47.0
     center1, center2 = (50.0, 77.0), (50.0, 22.0)
 
-    centers = [center1, center2]
-    obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
-    # obstacle_world.draw_obstacles()
+    # centers = [center1, center2]
+    # obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
+    # # obstacle_world.draw_obstacles()
+    obstacle_world = obs.FreeWorld()
 
-    np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
-    np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
-    # np_center3 = np.array([center3[0]-block_size/2.0, center3[1]-block_size/2.0, center3[0]+block_size/2.0, center3[1]+block_size/2.0  ])
-    # np_center4 = np.array([center4[0]-block_size/2.0, center4[1]-block_size/2.0, center4[0]+block_size/2.0, center4[1]+block_size/2.0  ])
-    # np_center5 = np.array([center5[0]-block_size/2.0, center5[1]-block_size/2.0, center5[0]+block_size/2.0, center5[1]+block_size/2.0  ])
-    # np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5]
-    np_centers = [np_center1, np_center2]
+    # np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
+    # np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
+    # # np_center3 = np.array([center3[0]-block_size/2.0, center3[1]-block_size/2.0, center3[0]+block_size/2.0, center3[1]+block_size/2.0  ])
+    # # np_center4 = np.array([center4[0]-block_size/2.0, center4[1]-block_size/2.0, center4[0]+block_size/2.0, center4[1]+block_size/2.0  ])
+    # # np_center5 = np.array([center5[0]-block_size/2.0, center5[1]-block_size/2.0, center5[0]+block_size/2.0, center5[1]+block_size/2.0  ])
+    # # np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5]
+    # np_centers = [np_center1, np_center2]
+    np_centers = []
 
     ### Grid Map
-    grid_map = grid.ObstacleGridConverter(map_max, map_max, 2, np_centers)
-    # grid_map = grid.ObstacleGridConverter(map_max, map_max, 0, np_centers)
+    # grid_map = grid.ObstacleGridConverter(map_max, map_max, 2, np_centers)
+    grid_map = grid.ObstacleGridConverter(map_max, map_max, 0, np_centers)
     
     raytracer = grid.Raytracer(map_max, map_max, 2, np_centers)
 
     '''World generation '''    
     
     # Options include mean, info_gain, and hotspot_info, mes'''
-    reward_function = 'hotspot_info'
+    reward_function = 'mean'
 
     world = Environment(ranges = ranges, # x1min, x1max, x2min, x2max constraints
                         NUM_PTS = 20, 
                         variance = 100.0, 
                         lengthscale = 3.0, 
-                        visualize = True,
+                        visualize = False,
                         seed = 1)
 
     evaluation = Evaluation(world = world, 
@@ -83,22 +86,25 @@ if __name__ == "__main__":
     '''
     Planning Setup 
     '''
-    display = True
+    display = False
     gradient_on = True
 
     gradient_step_list = [0.0, 0.05, 0.1, 0.15, 0.20]
 
     planning_type = 'non_myopic'
 
-    gradient_step = 0.0    
-    print('range_max ' + str(range_max)+ ' iteration '+ ' gradient_step ' + str(gradient_step))
-    iteration = 1
-    planning = Planning_Result(planning_type, world, obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step,
-                               grid_map, lidar, display, gradient_on, gradient_step, iteration)
+    # for gradient_step in gradient_step_list:
+    #     # gradient_step = 0.0    
+    #     print('range_max ' + str(range_max)+ ' iteration '+ ' gradient_step ' + str(gradient_step))
+    #     iteration = 3
+    #     planning = Planning_Result(planning_type, world, obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step,
+    #                             grid_map, lidar, display, gradient_on, gradient_step, iteration)
 
+    sdf_map = gd_lib.sdf_map(ranges, obstacle_world)
 
-    # sdf_map = grid.GridMap_SDF(1.0, map_max, map_max, 5, np_centers)
-    # sdf_map.generate_SDF("base")
+    sdf_map = grid.GridMap_SDF(1.0, map_max, map_max, 5, np_centers)
+    sdf_map.generate_SDF()
+    print(sdf_map.get_distance(pose))
     
     
     # visual = vis.visualization(map_max, 1.0, lidar)

@@ -163,20 +163,21 @@ class Evaluation:
         if not os.path.exists('./result/' + str(self.reward_function)):
             os.makedirs('./result/' + str(self.reward_function))
         ''' Save the relevent metrics as csv files '''
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_time' + '.txt', time.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_info_gain' + '.txt', info_gain.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_MSE' + '.txt', MSE.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_hotspot_info' + '.txt', hotspot_info.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_UCB' + '.txt', UCB.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_mean' + '.txt', mean.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_reward_' + str(self.reward_function)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_MVI' + '.txt', mes_reward_robot.T, fmt='%s')
+        
         
 # , info_gain.T, MSE.T, hotspot_info.T,UCB.T, regret.T, mean.T )
         # for i in range(0, self.num_stars):

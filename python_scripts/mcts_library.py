@@ -47,7 +47,7 @@ class MCTS(object):
         self.path_generator = path_generator
 
         # Parameterization for the search
-        self.comp_budget = computation_budget
+        self.budget = computation_budget
         self.rl = rollout_length
 
         # The tree
@@ -92,7 +92,7 @@ class MCTS(object):
             
         time_start = time.time()            
         # while we still have time to compute, generate the tree
-        while time.time() - time_start < self.comp_budget:#i < self.comp_budget:
+        while time.time() - time_start < self.budget:#i < self.budget:
             i += 1
             current_node = self.tree_policy()
             sequence = self.rollout_policy(current_node)
@@ -703,7 +703,7 @@ class cMCTS(MCTS):
         time_start = time.time()            
         # while we still have time to compute, generate the tree
         i = 0
-        while time.time() - time_start < self.comp_budget:#i < self.comp_budget:
+        while time.time() - time_start < self.budget:#i < self.budget:
             i += 1
             gp = copy.copy(self.GP)
             self.tree.get_next_leaf(gp)

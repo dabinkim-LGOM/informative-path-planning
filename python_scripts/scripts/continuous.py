@@ -31,7 +31,7 @@ from Robot import *
 
 
 class Planning_Result():
-    def __init__(self, planning_type, world, obstacle_world, evaluation, reward_function, ranges, start_loc, 
+    def __init__(self, planning_type, world, env_type, obstacle_world, evaluation, reward_function, ranges, start_loc, 
                  input_limit, sample_number, time_step, grid_map, lidar, display, gradient_on, gradient_step, iteration):
         self.iteration = iteration
         self.type = planning_type
@@ -39,7 +39,7 @@ class Planning_Result():
         self.obstacle_world = obstacle_world
         self.evaluation = evaluation
         self.reward_function = reward_function
-
+        self.env_type = env_type 
         if grid_map is not None:
             self.grid_map = grid_map
         else:
@@ -52,8 +52,8 @@ class Planning_Result():
 
         if(planning_type=='coverage'):
             self.coverage_planning(ranges, start_loc, time_step)
-        elif(planning_type=='non_myopic'):
-            self.non_myopic_planning(ranges, start_loc, input_limit, sample_number, time_step, display, gradient_on, gradient_step)
+        elif(planning_type=='nonmyopic'):
+            self.nonmyopic_planning(ranges, start_loc, input_limit, sample_number, time_step, display, gradient_on, gradient_step)
         elif(planning_type=='myopic'):
             self.myopic_planning(ranges, start_loc, time_step)
 
@@ -79,10 +79,11 @@ class Planning_Result():
         robot.visualize_trajectory()
         # robot.plot_information()
 
-    def non_myopic_planning(self, ranges_, start_loc_, input_limit_, sample_number_,time_step, display, gradient_on, gradient_step):
+    def nonmyopic_planning(self, ranges_, start_loc_, input_limit_, sample_number_,time_step, display, gradient_on, gradient_step):
         robot = Nonmyopic_Robot(sample_world = self.world.sample_value, obstacle_world= self.obstacle_world, 
                         start_loc = start_loc_, 
                         ranges = ranges_,
+                        # env_type = self.env_type,
                         kernel_file = None,
                         kernel_dataset = None,
                         prior_dataset =  None, 
@@ -111,7 +112,7 @@ class Planning_Result():
         # robot.visualize_world_model()
         # robot.visualize_trajectory()
         range_max = ranges_[1]
-        robot.plot_information(self.iteration, range_max, gradient_step)
+        robot.plot_information(self.iteration, range_max, self.env_type, gradient_step)
         # return MSE, regret, mean, hotspot_info, info_gain, UCB
 
     def coverage_planning(self, ranges_, start_loc_, time_step):
@@ -246,7 +247,7 @@ class Planning_Result():
 #             input_limit = [0.0, 10.0, -30.0, 30.0] #Limit of actuation 
 #             sample_number = 10 #Number of sample actions 
 
-#             planning_type = 'non_myopic'
+#             planning_type = 'nonmyopic'
             
 #             for iteration in range(5):
 #                 for gradient_step in gradient_step_list:

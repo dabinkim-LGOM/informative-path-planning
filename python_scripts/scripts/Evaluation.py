@@ -145,7 +145,7 @@ class Evaluation:
         
         return MSE, regret, mean, hotspot_info, info_gain, UCB, mes_reward_robot
         
-    def plot_metrics(self, iteration, range_max, grad_step):
+    def plot_metrics(self, iteration, range_max, env_type, grad_step):
         # Asumme that all metrics have the same time as MSE; not necessary
         time = np.array(self.metrics['MSE'].keys())
         
@@ -160,22 +160,28 @@ class Evaluation:
         UCB = np.cumsum(np.array(self.metrics['aquisition_function'].values()))
         mes_reward_robot = np.cumsum(np.array(self.metrics['mes_reward_robot'].values()))
 
-        if not os.path.exists('./result/' + str(self.reward_function)):
-            os.makedirs('./result/' + str(self.reward_function))
+        if not os.path.exists('./result/' + str(self.reward_function) +'/' + str(env_type)):
+            os.makedirs('./result/' + str(self.reward_function) +'/' + str(env_type))
         ''' Save the relevent metrics as csv files '''
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_time' + '.txt', time.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_info_gain' + '.txt', info_gain.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_MSE' + '.txt', MSE.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_hotspot_info' + '.txt', hotspot_info.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_UCB' + '.txt', UCB.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_mean' + '.txt', mean.T, fmt='%s')
-        np.savetxt('./result/' + self.reward_function + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
+        
+        np.savetxt('./result/' + self.reward_function +'/' + str(env_type) + '/metrics_grad_' + str(grad_step)+ 'range_max_' + str(range_max) \
             + ' iter_' + str(iteration) +'_MVI' + '.txt', mes_reward_robot.T, fmt='%s')
         
         

@@ -210,9 +210,9 @@ class Robot:
             plt.plot(f[:,0], f[:,1], c=c, marker='*')
         plt.show()
     
-    def plot_information(self, iteration, range_max, grad_step):
+    def plot_information(self, iteration, range_max, env_type, grad_step):
         ''' Visualizes the accumulation of reward and aquisition functions ''' 
-        self.eval.plot_metrics(iteration, range_max, grad_step)
+        self.eval.plot_metrics(iteration, range_max, env_type, grad_step)
 
     def save_information(self):
         MSE, regret, mean, hotspot_info, info_gain, UCB, mes_reward_robot = self.eval.save_metric()

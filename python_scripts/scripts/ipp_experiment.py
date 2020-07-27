@@ -23,6 +23,7 @@ parser.add_argument("-n", "--nonmyopic", action="store", help="myopic, nonmyopic
 parser.add_argument("-g", "--goal", action="store_true", help="Consider the reward of final point only if flag set.", default=False)
 parser.add_argument("-e", "--env", action="store", help="Environment of Exploration. Free, Box, or Harsh env.", default="Free")
 parser.add_argument("-z", "--size", action="store", type=float, help="Size of map environment. 50, 100, 200", default=100.)
+parser.add_argument("-d", "--gradient", action="store", type=float, help="Gradient step", default=0.0)
 
 #parser commaind line options
 parse = parser.parse_args()
@@ -35,6 +36,7 @@ PLANNER = parse.nonmyopic
 GOAL_ONLY = parse.goal
 ENVIRONMENT = parse.env 
 SIZE = parse.size 
+GRAD_STEP = parse.gradient 
 
 MIN_COLOR = -25.
 MAX_COLOR = 25. 
@@ -136,12 +138,12 @@ Planning Setup
 display = False
 gradient_on = True
 
-gradient_step_list = [0.0, 0.05, 0.1, 0.15, 0.20]
+# gradient_step_list = [0.0, 0.05, 0.1, 0.15, 0.20]
 
 planning_type = PLANNER
 
 # for gradient_step in gradient_step_list:
-gradient_step = 0.0    
+gradient_step = GRAD_STEP    
 print('range_max ' + str(ranges[1])+ ' iteration '+ ' gradient_step ' + str(gradient_step))
 iteration = 1
 planning = Planning_Result(planning_type, world, ENVIRONMENT, obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step,

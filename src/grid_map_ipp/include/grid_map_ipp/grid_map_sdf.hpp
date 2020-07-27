@@ -20,11 +20,12 @@ namespace grid_map
         
 
         public:
-        GridMapSDF(double buffer, double map_size_x, double map_size_y, int num_obstacle, std::vector<Eigen::Array4d> obstacles)
+        GridMapSDF(double buffer, grid_map::GridMap belief_map)
         : buffer_(buffer)
         {
-            grid_map::ObstacleGridConverter converter(map_size_x, map_size_y, num_obstacle, obstacles);
-            map_ = converter.GridMapConverter();
+            // grid_map::ObstacleGridConverter converter(map_size_x, map_size_y, num_obstacle, obstacles);
+            // map_ = converter.GridMapConverter();
+            map_ = belief_map;
         }
 
         void generate_SDF()

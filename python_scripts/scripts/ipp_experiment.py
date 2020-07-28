@@ -51,7 +51,6 @@ logger = logging.getLogger('robot')
 #Set Environment
 map_max = SIZE 
 ranges = (0.0, map_max, 0.0, map_max)
-print(ranges)
 
 if(ENVIRONMENT=="Free"):
     obstacle_world = obs.FreeWorld()
@@ -146,6 +145,7 @@ planning_type = PLANNER
 gradient_step = GRAD_STEP    
 print('range_max ' + str(ranges[1])+ ' iteration '+ ' gradient_step ' + str(gradient_step))
 iteration = 1
+
 planning = Planning_Result(planning_type, world, ENVIRONMENT, obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step,
                         grid_map, lidar, display, gradient_on, gradient_step, iteration)
 

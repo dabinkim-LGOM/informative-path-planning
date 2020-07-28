@@ -10,7 +10,7 @@ reward_list = {'info_gain', 'mean'};
 % iter_list = {'0', '1', '2', '3', '4'};
 % grad_list = {'0.0', '0.05', '0.1', '0.15', '0.2'};
 iter_list = {'1'};
-grad_list = {'0.0'};
+grad_list = {'0.0', '0.1'};
 x1 = size(iter_list);
 x2 = size(grad_list);
 data = {};
@@ -19,7 +19,7 @@ for grad_nnn = 1:x2(2)
     for iter_nnn = 1:x1(2)
         iter = iter_list{iter_nnn};
         grad_step = grad_list{grad_nnn};
-        range = '50.0';
+        range = '100.0';
         
         param =  {'grad_step', str2num(grad_step);
             'range', str2num(range)};
@@ -27,8 +27,8 @@ for grad_nnn = 1:x2(2)
         data{iter_nnn}.time = (1:1:150)';
         
         for i=1:x_metric(2)
-            dir info_gain
-            dir Box
+            dir mean/Free
+%             dir Harsh
 %             directory = fullfile(fullfile(pwd, reward_list(1)), env_type_list(2));
             directory = '';
             filename = strcat(directory,'metrics_grad_',...

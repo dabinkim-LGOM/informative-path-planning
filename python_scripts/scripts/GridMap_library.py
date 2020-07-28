@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import grid_map_ipp_module as grid
 import GPModel as GPlib
 
 class sdf_map():
@@ -12,4 +13,4 @@ class sdf_map():
         sdf_map.generate_SDF()
     
 
-    def generate_GP(self, data):
+    # def generate_GP(self, data):

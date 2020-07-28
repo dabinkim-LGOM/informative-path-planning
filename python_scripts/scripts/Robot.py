@@ -24,6 +24,7 @@ from MCTS import *
 import Path_Generator as pg
 import grid_map_ipp_module as grid 
 import vis_grid_map as vis 
+import GridMap_library as sdf
 
 
 class Robot:
@@ -95,6 +96,7 @@ class Robot:
             self.is_lidar = True
         else:
             self.is_lidar = False
+
 
         # The path generation class for the robot
         path_options = {'default':Path_Generator(frontier_size, horizon_length, turning_radius, sample_step, ranges),
@@ -287,6 +289,7 @@ class Nonmyopic_Robot(Robot):
         else:
             self.is_lidar = False
 
+
         # The path generation class for the robot
         path_options = {'default':pg.Path_Generator(frontier_size, horizon_length, turning_radius, sample_step, ranges),
                         'dubins': pg.Dubins_Path_Generator(frontier_size, horizon_length, turning_radius, sample_step, ranges),
@@ -306,7 +309,8 @@ class Nonmyopic_Robot(Robot):
         for t in xrange(T):
             #computation_budget, belief, initial_pose, planning_limit, frontier_size, path_generator, aquisition_function, time
             # FIXME MCTS
-            mcts = MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.roll_length, self.fs, self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step)
+            mcts = MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.roll_length, self.fs, 
+                        self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step, self.lidar)
             best_path, cost = mcts.get_actions()
 
             # mcts = mc_lib.cMCTS(self.comp_budget, self.GP, self.loc, self.roll_length, self.path_generator, self.aquisition_function, self.f_rew, t, None, False, 'dpw')
@@ -325,9 +329,16 @@ class Nonmyopic_Robot(Robot):
             
             self.eval.update_metrics(t, self.GP, free_paths, best_path)
 
+            '''
+            Observation Step 
+            Collect measurement of 'Desired Process', 'Lidar value', 'SDF value'
+            '''
             self.collect_observations(xlocs)
 
             self.collect_lidar_observations(xlocs)
+
+
+
             self.trajectory.append(best_path)
 
             visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, True)

@@ -44,9 +44,9 @@ PYBIND11_MODULE(grid_map_ipp_module, m)
         .def("get_occ_value", &Lidar_sensor::get_occ_value);
         // .def()
     py::class_<GridMapSDF>(m, "GridMapSDF")
-        .def(py::init<double &, double&,
-                      double &, int &,
-                      std::vector<Eigen::Array4d> &>())
+        .def(py::init<double &, Lidar_sensor &, Eigen::Vector2d &, Eigen::Array2d &>())
+        .def("set_length", &GridMapSDF::set_length)
+        .def("set_position", &GridMapSDF::set_position)
         .def("generate_SDF", &GridMapSDF::generate_SDF)
         .def("get_gradient_value", &GridMapSDF::get_GradientValue)
         .def("get_distance", &GridMapSDF::get_Distance);

@@ -10,7 +10,7 @@ import argparse
 import grid_map_ipp_module as grid 
 import obstacles as obs 
 import vis_grid_map as vis 
-from continuous import *
+from Planning_Result import *
 import GridMap_library as gd_lib 
 
 

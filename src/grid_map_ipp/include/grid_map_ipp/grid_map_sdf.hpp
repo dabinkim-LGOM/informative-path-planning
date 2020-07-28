@@ -15,19 +15,26 @@ namespace grid_map
     {
         private:
         double buffer_;
+        Eigen::Vector2d position_;
+        Eigen::Array2d length_; //Length of submap
         grid_map::GridMap map_;
         grid_map::SignedDistanceField sdf_field_;
         
 
         public:
-        GridMapSDF(double buffer, grid_map::GridMap belief_map)
+        GridMapSDF(double buffer, RayTracer::Lidar_sensor lidar, Eigen::Vector2d pos, Eigen::Array2d length)
         : buffer_(buffer)
         {
             // grid_map::ObstacleGridConverter converter(map_size_x, map_size_y, num_obstacle, obstacles);
             // map_ = converter.GridMapConverter();
-            map_ = belief_map;
+            position_ = pos;        length_ = length;   bool isSuccess = true;
+            grid_map::GridMap full_map = lidar.get_belief_map();
+            map_ = full_map.getSubmap(position_, length_, isSuccess);
+            cout << isSuccess << endl;
         }
 
+        void set_length(Eigen::Array2d length){length_= length;};
+        void set_position(Eigen::Vector2d pos){position_ = pos;};
         void generate_SDF()
         {
             sdf_field_.calculateSignedDistanceField(map_, "base", 1.5);

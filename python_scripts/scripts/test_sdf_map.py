@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 # import cv2 
 import vis_grid_map as vis 
-from continuous import *
+from Planning_Result import *
 import GridMap_library as gd_lib 
 
 if __name__ == "__main__":
@@ -26,13 +26,6 @@ if __name__ == "__main__":
     # # obstacle_world.draw_obstacles()
     obstacle_world = obs.FreeWorld()
 
-    # np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
-    # np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
-    # # np_center3 = np.array([center3[0]-block_size/2.0, center3[1]-block_size/2.0, center3[0]+block_size/2.0, center3[1]+block_size/2.0  ])
-    # # np_center4 = np.array([center4[0]-block_size/2.0, center4[1]-block_size/2.0, center4[0]+block_size/2.0, center4[1]+block_size/2.0  ])
-    # # np_center5 = np.array([center5[0]-block_size/2.0, center5[1]-block_size/2.0, center5[0]+block_size/2.0, center5[1]+block_size/2.0  ])
-    # # np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5]
-    # np_centers = [np_center1, np_center2]
     np_centers = []
 
     ### Grid Map
@@ -86,27 +79,17 @@ if __name__ == "__main__":
     '''
     Planning Setup 
     '''
-    display = False
+    display = True
     gradient_on = True
 
     gradient_step_list = [0.0, 0.05, 0.1, 0.15, 0.20]
 
-    planning_type = 'non_myopic'
+    planning_type = 'nonmyopic'
 
     # for gradient_step in gradient_step_list:
-    #     # gradient_step = 0.0    
-    #     print('range_max ' + str(range_max)+ ' iteration '+ ' gradient_step ' + str(gradient_step))
-    #     iteration = 3
-    #     planning = Planning_Result(planning_type, world, obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step,
-    #                             grid_map, lidar, display, gradient_on, gradient_step, iteration)
-
-    sdf_map = gd_lib.sdf_map(ranges, obstacle_world)
-
-    sdf_map = grid.GridMap_SDF(1.0, map_max, map_max, 5, np_centers)
-    sdf_map.generate_SDF()
-    print(sdf_map.get_distance(pose))
+    gradient_step = 0.0    
+    print('range_max ' + str(range_max)+ ' iteration '+ ' gradient_step ' + str(gradient_step))
+    iteration = 1
+    planning = Planning_Result(planning_type, world, 'Free', obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step, grid_map, lidar, display, gradient_on, gradient_step, iteration)
     
     
-    # visual = vis.visualization(map_max, 1.0, lidar)
-    # # visual.show(data)
-    # visual.visualization()

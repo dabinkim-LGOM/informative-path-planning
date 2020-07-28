@@ -21,11 +21,13 @@ import logging as log
 from Environment import *
 from Evaluation import *
 from GPModel import *
+import GridMap_library as sdflib
 
 
 class MCTS():
     '''Class that establishes a MCTS for nonmyopic planning'''
-    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, planning_limit, frontier_size, path_generator, aquisition_function, time, gradient_on, grad_step):
+    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, planning_limit, frontier_size,
+                path_generator, aquisition_function, time, gradient_on, grad_step, lidar):
         '''Initialize with constraints for the planning, including whether there is 
            a budget or planning horizon
            budget - length, time, etc to consider
@@ -46,14 +48,21 @@ class MCTS():
         self.t = time
         self.gradient_on = gradient_on
         self.grad_step = grad_step
+        self.lidar = lidar
+        self.sdf_map = None
 
     def get_actions(self):
         self.tree = self.initialize_tree()
         time_start = time.clock()
-        
+        if(self.t > 10):
+            self.sdf_map = self.generate_sdfmap()
+
         while time.clock() - time_start < self.budget:
             current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)
             
+            #Update SDF map
+            self.update_sdfmap(current_node)
+
             sequence = self.rollout_policy(current_node, self.budget) #Add node
             
             reward = self.get_reward(sequence)
@@ -61,7 +70,7 @@ class MCTS():
             value_grad = self.get_value_grad(current_node, sequence, reward)
             # if(len(self.tree[sequence[0]])==4):
             #     self.tree[sequence[0]] = (self.tree[sequence[0]][0],self.tree[sequence[0]][1], self.tree[sequence[0]][2], self.tree[sequence[0]][3], value_grad )
-
+            
             self.update_tree(reward, sequence, value_grad)
             ###TODO: After Finish Build functions for update
             # if(self.gradient_on):
@@ -98,6 +107,7 @@ class MCTS():
         last_action_x = last_action[0] + step_size * grad_x
         last_action_y = last_action[1] + step_size * grad_y
 
+        #Restrict updated action inside the environment
         if(last_action_x < self.ranges[0]):
             last_action_x = self.ranges[0] + 0.1
         elif(last_action_x > self.ranges[1]):
@@ -150,13 +160,23 @@ class MCTS():
 
             grad_x = (reward_x- cur_reward)/ eps
             grad_y = (reward_y - cur_reward) / eps
-            # print("GRAD_X: "+ str(grad_x))
-            # print("GRAD_Y: "+ str(grad_y))
-
-        # print(init_node)
-        # print(cur_reward)    
-        
         return [grad_x, grad_y]
+
+    def generate_sdfmap(self):
+        # x, y = self.cp[0], self.cp[1]
+        length = np.array([10, 10])
+        sdf_map = sdflib.sdf_map(self.ranges, self.obstacle_world, self.lidar, self.cp, length)
+
+        #At first step, generate training data and GP model
+        train_num = 10
+        x, y = self.cp[0], self.cp[1] # Initial pose
+        rand_pos = np.add(np.random.rand(train_num, 2), [x,y]) #Random training points
+        sdf_map.generate_GP(rand_pos)
+        return sdf_map
+    def update_sdfmap(self, node):
+        if(self.sdf_map is not None):
+            print(type(node))
+            print(node)
 
     def visualize_tree(self):
         ranges = (0.0, 20.0, 0.0, 20.0)
@@ -290,48 +310,6 @@ class MCTS():
             return self.aquisition_function(time = self.t, xvals = obs, param= (self.max_val, self.max_locs, self.target), robot_model = sim_world)
         else:
             return self.aquisition_function(time = self.t, xvals = obs, robot_model = sim_world)
-    
-    def info_gain(self, xvals, robot_model):
-        ''' Compute the information gain of a set of potential sample locations with respect to the underlying fucntion
-            conditioned or previous samples xobs'''        
-        data = np.array(xvals)
-        x1 = data[:,0]
-        x2 = data[:,1]
-        queries = np.vstack([x1, x2]).T   
-        xobs = robot_model.xvals
-
-        # If the robot hasn't taken any observations yet, simply return the entropy of the potential set
-        if xobs is None:
-            Sigma_after = robot_model.kern.K(queries)
-            entropy_after = 0.5 * np.log(np.linalg.det(np.eye(Sigma_after.shape[0], Sigma_after.shape[1]) \
-                                        + robot_model.variance * Sigma_after))
-            return (0.5*np.log(entropy_after), 0.5*(np.log(entropy_after)))
-
-        all_data = np.vstack([xobs, queries])
-
-        # The covariance matrices of the previous observations and combined observations respectively
-        Sigma_before = robot_model.kern.K(xobs) 
-        Sigma_total = robot_model.kern.K(all_data)       
-
-        # The term H(y_a, y_obs)
-        entropy_before = 2 * np.pi * np.e * np.linalg.det(np.eye(Sigma_before.shape[0], Sigma_before.shape[1]) \
-                                        + robot_model.variance * Sigma_before)
-
-        # The term H(y_a, y_obs)
-        entropy_after = 2 * np.pi * np.e * np.linalg.det(np.eye(Sigma_total.shape[0], Sigma_total.shape[1]) \
-                                        + robot_model.variance * Sigma_total)
-
-        # The term H(y_a | f)
-        entropy_total = 0.5 * np.log(entropy_after / entropy_before)
-
-        ''' TODO: this term seems like it should still be in the equation, but it makes the IG negative'''
-        #entropy_const = 0.5 * np.log(2 * np.pi * np.e * robot_model.variance)
-        entropy_const = 0.0
-
-        # This assert should be true, but it's not :(
-        #assert(entropy_after - entropy_before - entropy_const > 0)
-        #return entropy_total - entropsy_const
-        return (entropy_total, 0.5*np.log(entropy_before))
     
 
     def get_best_child(self):

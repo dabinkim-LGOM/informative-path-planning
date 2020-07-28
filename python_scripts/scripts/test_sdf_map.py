@@ -107,6 +107,3 @@ if __name__ == "__main__":
     print(sdf_map.get_distance(pose))
     
     
-    # visual = vis.visualization(map_max, 1.0, lidar)
-    # # visual.show(data)
-    # visual.visualization()

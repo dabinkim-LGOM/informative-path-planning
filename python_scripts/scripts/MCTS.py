@@ -238,7 +238,7 @@ class MCTS():
         for i in xrange(self.frontier_size):
             node = 'child '+ str(i)
             if(node in self.tree): #If 'node' string key value is in current tree. 
-                leaf_eval[node] = self.tree[node][2] + 0.1*np.sqrt(2*(np.log(self.tree['root'][1] +0.01 ))/(self.tree[node][3]+0.01))
+                leaf_eval[node] = self.tree[node][2] + 0.1*np.sqrt(2*(np.log(self.tree['root'][1]))/(self.tree[node][3]))
 #         print max(leaf_eval, key=leaf_eval.get)
         
         # print(max(leaf_eval, key=leaf_eval.get))

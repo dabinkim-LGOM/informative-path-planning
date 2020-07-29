@@ -52,16 +52,24 @@ class MCTS():
         self.sdf_map = None
 
     def get_actions(self):
+
         self.tree = self.initialize_tree()
         time_start = time.clock()
-        if(self.t > 10):
-            self.sdf_map = self.generate_sdfmap()
+
+        # self.sdf_map = self.generate_sdfmap(self.cp)
+        # print("Current timestep : ", self.t)
+        
+        # if self.sdf_map.is_exist_obstacle():
+        #     print("Here")
+        #     self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
 
         while time.clock() - time_start < self.budget:
             current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)
             
-            #Update SDF map
-            self.update_sdfmap(current_node)
+            # #Update SDF map
+            # if self.sdf_map is not None:
+            #     print("Here")
+                # self.update_sdfmap(current_node)
 
             sequence = self.rollout_policy(current_node, self.budget) #Add node
             
@@ -162,20 +170,18 @@ class MCTS():
             grad_y = (reward_y - cur_reward) / eps
         return [grad_x, grad_y]
 
-    def generate_sdfmap(self):
+    def generate_sdfmap(self, cp):
         # x, y = self.cp[0], self.cp[1]
-        length = np.array([10, 10])
-        sdf_map = sdflib.sdf_map(self.ranges, self.obstacle_world, self.lidar, self.cp, length)
+        try:
+            length = np.array([8, 8])
+            sdf_map = sdflib.sdf_map(self.ranges, self.obstacle_world, self.lidar, cp, length)
+            return sdf_map
+        except Exception as ex:
+            print("During Generating SDFMAP", ex)
 
-        #At first step, generate training data and GP model
-        train_num = 10
-        x, y = self.cp[0], self.cp[1] # Initial pose
-        rand_pos = np.add(np.random.rand(train_num, 2), [x,y]) #Random training points
-        sdf_map.generate_GP(rand_pos)
-        return sdf_map
     def update_sdfmap(self, node):
         if(self.sdf_map is not None):
-            print(type(node))
+            # print(type(node))
             print(node)
 
     def visualize_tree(self):
@@ -232,7 +238,7 @@ class MCTS():
         for i in xrange(self.frontier_size):
             node = 'child '+ str(i)
             if(node in self.tree): #If 'node' string key value is in current tree. 
-                leaf_eval[node] = self.tree[node][2] + 0.1*np.sqrt(2*(np.log(self.tree['root'][1]))/self.tree[node][3])
+                leaf_eval[node] = self.tree[node][2] + 0.1*np.sqrt(2*(np.log(self.tree['root'][1] +0.01 ))/(self.tree[node][3]+0.01))
 #         print max(leaf_eval, key=leaf_eval.get)
         
         # print(max(leaf_eval, key=leaf_eval.get))

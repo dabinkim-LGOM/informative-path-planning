@@ -60,7 +60,7 @@ elif(ENVIRONMENT=="Box"):
     block_x = 10.0
     block_y = 10.0
     center1, center2, center3, center4, center5 = (10.0, 30.0), (50.0, 80.0), (70., 20.), (50., 50.), (60., 70.)
-    centers = [center1, center2]
+    centers = [center1, center2, center3, center4, center5]
     obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
 
     np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])

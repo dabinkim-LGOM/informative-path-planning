@@ -338,7 +338,6 @@ class Nonmyopic_Robot(Robot):
             self.collect_lidar_observations(xlocs)
 
 
-
             self.trajectory.append(best_path)
 
             visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, True)

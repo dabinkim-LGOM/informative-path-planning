@@ -6,8 +6,14 @@ import itertools
 import vis_grid_map as vis 
 from Planning_Result import *
 import GridMap_library as gd_lib 
+import argparse 
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-e", "--env", action="store", help="Environment of Exploration. Free, Box, or Harsh env.", default="Free")
+    parse = parser.parse_args()
+
     '''
     Map Initialization
     1) Map size and obstacles
@@ -17,22 +23,48 @@ if __name__ == "__main__":
     map_max = 100.0
     ranges = (0.0, map_max, 0.0, map_max)
     
-    block_x = 10.0
-    block_y = 47.0
-    center1, center2 = (50.0, 77.0), (50.0, 22.0)
+    ENVIRONMENT = parse.env 
 
-    # centers = [center1, center2]
-    # obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
-    # # obstacle_world.draw_obstacles()
-    obstacle_world = obs.FreeWorld()
+    if(ENVIRONMENT=="Free"):
+        obstacle_world = obs.FreeWorld()
+        np_centers = []
+        num_obs = 0
+    elif(ENVIRONMENT=="Box"):
+        block_x = 10.0
+        block_y = 10.0
+        center1, center2, center3, center4, center5 = (10.0, 30.0), (50.0, 80.0), (70., 20.), (50., 50.), (60., 70.)
+        # centers = [center1, center2, center3, center4, center5]
+        centers = [center1, center2]
+        obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
 
-    np_centers = []
+        np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
+        np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
+        np_center3 = np.array([center3[0]-block_x/2.0, center3[1]-block_y/2.0, center3[0]+block_x/2.0, center3[1]+block_y/2.0  ])
+        np_center4 = np.array([center4[0]-block_x/2.0, center4[1]-block_y/2.0, center4[0]+block_x/2.0, center4[1]+block_y/2.0  ])
+        np_center5 = np.array([center5[0]-block_x/2.0, center5[1]-block_y/2.0, center5[0]+block_x/2.0, center5[1]+block_y/2.0  ])
+        np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5]
+        num_obs = 5
+    elif(ENVIRONMENT=="Harsh"):
+        block_x = 10.0
+        block_y = 47.0
+        center1, center2 = (50.0, 77.0), (50.0, 22.0)
+        centers = [center1, center2]
+        obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
+        
+        np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
+        np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
+        np_centers = [np_center1, np_center2]
+        num_obs = 2
+    else:
+        raise NameError('Invalid Environment Type')
+
+
 
     ### Grid Map
     # grid_map = grid.ObstacleGridConverter(map_max, map_max, 2, np_centers)
-    grid_map = grid.ObstacleGridConverter(map_max, map_max, 0, np_centers)
+    grid_map = grid.ObstacleGridConverter(map_max, map_max, num_obs, np_centers)
     
-    raytracer = grid.Raytracer(map_max, map_max, 2, np_centers)
+    raytracer = grid.Raytracer(map_max, map_max, num_obs, np_centers)
 
     '''World generation '''    
     

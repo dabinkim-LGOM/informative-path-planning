@@ -12,7 +12,8 @@ class sdf_map():
         self.GPMap = None
         cur_pos = np.zeros(shape=(2,1))
         if(len(pos)==3):
-            cur_pos[0], cur_pos[1] = pos[0], cur_pos[1]
+            cur_pos[0], cur_pos[1] = pos[0], pos[1]
+            print("cur_pos x: ", cur_pos[0], " y: ", cur_pos[1])
         else:
             cur_pos = pos 
 
@@ -24,7 +25,7 @@ class sdf_map():
         Check whether there is occupied voxel in the submap. SDF map will be generated if there is occupied voxel. 
         Return : bool, True: there is occupied voxel. False: if not. 
         '''
-        
+        return self.sdf_map.is_occupied()
 
     def get_sdf_value(self, pos):
         return self.sdf_map.get_distance(pos)
@@ -44,6 +45,16 @@ class sdf_map():
         print(sdf_data)
         self.GPMap = GPlib.GPModel(lengthscale=lengthscale, variance=variance)
         self.GPMap.set_data(obs_data, sdf_data)
+
+    def train_sdfmap(self, train_num=10, cp=[0., 0.]):
+        try:
+            #At first step, generate training data and GP model
+            train_num = 10
+            x, y = cp[0], cp[1] # Initial pose
+            rand_pos = np.add(np.random.rand(train_num, 2), [x,y]) #Random training points
+            self.generate_GP(rand_pos)
+        except Exception as ex:
+            print("During Train SDFMAP", ex)
 
     def add_data(self, obs_data, sdf_data):
         if self.GPMap == None:

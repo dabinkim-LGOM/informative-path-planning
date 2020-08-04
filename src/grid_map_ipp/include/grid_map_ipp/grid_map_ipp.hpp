@@ -115,6 +115,12 @@ namespace RayTracer{
             grid_map::GridMap get_belief_map(){
                 return belief_map_;
             }
+            grid_map::GridMap get_submap(Eigen::Vector2d pos, Eigen::Array2d length){
+                bool isSuccess = true;
+                // grid_map::GridMap full_map = lidar.get_belief_map();
+                grid_map::GridMap map = belief_map_.getSubmap(pos, length, isSuccess);
+                return map;
+            }
             Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
     };
 

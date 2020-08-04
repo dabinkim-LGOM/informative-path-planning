@@ -56,12 +56,12 @@ class MCTS():
         self.tree = self.initialize_tree()
         time_start = time.clock()
 
-        # self.sdf_map = self.generate_sdfmap(self.cp)
-        # print("Current timestep : ", self.t)
+        self.sdf_map = self.generate_sdfmap(self.cp)
+        print("Current timestep : ", self.t)
         
-        # if self.sdf_map.is_exist_obstacle():
-        #     print("Here")
-        #     self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
+        if self.sdf_map.is_exist_obstacle():
+            print("Here")
+            self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
 
         while time.clock() - time_start < self.budget:
             current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)
@@ -173,12 +173,12 @@ class MCTS():
     def generate_sdfmap(self, cp):
         # x, y = self.cp[0], self.cp[1]
         try:
-            length = np.array([8, 8])
+            length = np.array([15, 15])
             sdf_map = sdflib.sdf_map(self.ranges, self.obstacle_world, self.lidar, cp, length)
             return sdf_map
         except Exception as ex:
             print("During Generating SDFMAP", ex)
-
+v
     def update_sdfmap(self, node):
         if(self.sdf_map is not None):
             # print(type(node))

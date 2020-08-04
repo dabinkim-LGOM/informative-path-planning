@@ -33,16 +33,22 @@ if __name__ == "__main__":
         block_x = 10.0
         block_y = 10.0
         center1, center2, center3, center4, center5 = (10.0, 30.0), (50.0, 80.0), (70., 20.), (50., 50.), (60., 70.)
-        centers = [center1, center2, center3, center4, center5]
+        center6, center7, center8, center9, center10 = (30., 70.), (80., 50.), (40., 20.), (10., 90.), (90., 30.)
+        centers = [center1, center2, center3, center4, center5, center6, center7, center8, center9, center10]
         # centers = [center1, center2]
-        obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=5, dim_blocks=(block_x, block_y), centers = centers )
+        obstacle_world = obs.BlockWorld(extent = ranges, num_blocks=10, dim_blocks=(block_x, block_y), centers = centers )
 
         np_center1 = np.array([center1[0]-block_x/2.0, center1[1]-block_y/2.0, center1[0]+block_x/2.0, center1[1]+block_y/2.0  ])
         np_center2 = np.array([center2[0]-block_x/2.0, center2[1]-block_y/2.0, center2[0]+block_x/2.0, center2[1]+block_y/2.0  ])
         np_center3 = np.array([center3[0]-block_x/2.0, center3[1]-block_y/2.0, center3[0]+block_x/2.0, center3[1]+block_y/2.0  ])
         np_center4 = np.array([center4[0]-block_x/2.0, center4[1]-block_y/2.0, center4[0]+block_x/2.0, center4[1]+block_y/2.0  ])
         np_center5 = np.array([center5[0]-block_x/2.0, center5[1]-block_y/2.0, center5[0]+block_x/2.0, center5[1]+block_y/2.0  ])
-        np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5]
+        np_center6 = np.array([center6[0]-block_x/2.0, center6[1]-block_y/2.0, center6[0]+block_x/2.0, center6[1]+block_y/2.0  ])
+        np_center7 = np.array([center7[0]-block_x/2.0, center7[1]-block_y/2.0, center7[0]+block_x/2.0, center7[1]+block_y/2.0  ])
+        np_center8 = np.array([center8[0]-block_x/2.0, center8[1]-block_y/2.0, center8[0]+block_x/2.0, center8[1]+block_y/2.0  ])
+        np_center9 = np.array([center9[0]-block_x/2.0, center9[1]-block_y/2.0, center9[0]+block_x/2.0, center9[1]+block_y/2.0  ])
+        np_center10 = np.array([center10[0]-block_x/2.0, center10[1]-block_y/2.0, center10[0]+block_x/2.0, center10[1]+block_y/2.0  ])
+        np_centers = [np_center1, np_center2, np_center3, np_center4, np_center5, np_center6, np_center7, np_center8, np_center9, np_center10]
         num_obs = 5
     elif(ENVIRONMENT=="Harsh"):
         block_x = 10.0
@@ -105,7 +111,7 @@ if __name__ == "__main__":
     cur_yaw = 0.0
     pose = grid.Pose(cur_x, cur_y, cur_yaw)
 
-    range_max, range_min, hangle_max, hangle_min, angle_resol, resol = 4.5, 0.5, 180.0, -180.0, 5.0, 1.0
+    range_max, range_min, hangle_max, hangle_min, angle_resol, resol = 9.5, 0.5, 180.0, -180.0, 5.0, 1.0
     lidar = grid.Lidar_sensor(range_max, range_min, hangle_max, hangle_min, angle_resol, map_max, map_max, resol, raytracer)
 
     '''

@@ -48,6 +48,7 @@ PYBIND11_MODULE(grid_map_ipp_module, m)
         .def("set_length", &GridMapSDF::set_length)
         .def("set_position", &GridMapSDF::set_position)
         .def("generate_SDF", &GridMapSDF::generate_SDF)
+        .def("is_occupied", &GridMapSDF::is_occupied)
         .def("get_gradient_value", &GridMapSDF::get_GradientValue)
         .def("get_distance", &GridMapSDF::get_Distance);
 }

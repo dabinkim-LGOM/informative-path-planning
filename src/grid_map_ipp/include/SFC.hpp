@@ -1,16 +1,13 @@
-#ifndef FRONTIER_H
-#define FRONTIER_H
+#ifndef SFC_H
+#define SFC_H
 
-#include <iostream>
-#include <queue>
 #include <grid_map_ipp/grid_map_ipp.hpp>
 #include "grid_map_core/GridMap.hpp"
 
-using namespace std;
 namespace grid_map
 {
     //Get Frontier points from current (belief) grid map 
-    class Frontier
+    class SFC
     {
         private:
             grid_map::GridMap belief_map_;
@@ -24,4 +21,4 @@ namespace grid_map
     };
 }
 
-#endif 
+#endif

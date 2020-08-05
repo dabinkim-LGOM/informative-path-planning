@@ -2,6 +2,7 @@
 #include <grid_map_ipp/grid_map_sdf.hpp>
 #include <Eigen/Dense>
 
+
 namespace RayTracer{
 
     //Transform euclidean (x,y) position value to grid map reference frame
@@ -168,5 +169,13 @@ namespace RayTracer{
         pair<vector<grid_map::Index>, bool> return_pair = make_pair(free_voxel, false);
 
         return return_pair;
+    }
+
+    std::vector<std::vector<grid_map::Index> > Lidar_sensor::frontier_detection(grid_map::Position cur_pos){
+        grid_map::Frontier ft;
+        grid_map::Index cur_idx;
+        belief_map_.getIndex(cur_pos, cur_idx);
+        vector<vector<grid_map::Index> > frontier_vector = ft.wfd(belief_map_, cur_idx);
+        return frontier_vector;
     }
 }

@@ -4,6 +4,7 @@
 #include "grid_map_core/GridMap.hpp"
 #include "grid_map_core/iterators/iterators.hpp"
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
+#include "grid_map_ipp/wavefront_frontier_detection.hpp"
 #include <Eigen/Dense>
 #include <vector>
 #include <iostream>
@@ -122,6 +123,9 @@ namespace RayTracer{
                 return map;
             }
             Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
+
+            //Frontier Detector, Return frontier voxels as indices; 
+            vector<vector<grid_map::Index> > frontier_detection(grid_map::Position cur_pos);
     };
 
 }

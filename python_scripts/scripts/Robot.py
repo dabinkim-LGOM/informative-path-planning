@@ -337,6 +337,9 @@ class Nonmyopic_Robot(Robot):
 
             self.collect_lidar_observations(xlocs)
 
+            # print(np.array([data[-1,0],data[-1,1]]))
+            frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
+            print(frontier_set)
 
             self.trajectory.append(best_path)
 

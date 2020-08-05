@@ -178,7 +178,7 @@ class MCTS():
             return sdf_map
         except Exception as ex:
             print("During Generating SDFMAP", ex)
-v
+
     def update_sdfmap(self, node):
         if(self.sdf_map is not None):
             # print(type(node))

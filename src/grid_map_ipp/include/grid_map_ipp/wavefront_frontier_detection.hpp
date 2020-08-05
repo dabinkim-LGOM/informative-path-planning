@@ -67,7 +67,7 @@ namespace grid_map{
         // int map_size = map_height * map_width;
         grid_map::Size map_size = map_.getSize();
         map<grid_map::Index, int, less<grid_map::Index> > cell_states;
-        //
+        
         queue<grid_map::Index> q_m;	
         q_m.push(pose);
         cell_states[pose] = MAP_OPEN_LIST;

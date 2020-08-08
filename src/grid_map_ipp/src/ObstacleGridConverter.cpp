@@ -69,4 +69,12 @@ namespace grid_map
         return occ_grid;
     }
 
+    nav_msgs::OccupancyGrid ObstacleGridConverter::OccupancyGridConverter(grid_map::GridMap& gd_map)
+    {
+        nav_msgs::OccupancyGrid occ_grid;
+        cout << "HERE?" << endl;
+        GridMapRosConverter::toOccupancyGrid(gd_map, "base", 0.0, 1.0, occ_grid);
+        cout << "HERE?2" << endl;
+        return occ_grid;
+    }
 }

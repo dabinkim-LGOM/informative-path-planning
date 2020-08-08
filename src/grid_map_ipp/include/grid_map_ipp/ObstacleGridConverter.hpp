@@ -29,6 +29,7 @@ namespace grid_map
 
             grid_map::GridMap GridMapConverter(); 
             nav_msgs::OccupancyGrid OccupancyGridConverter();
+            nav_msgs::OccupancyGrid OccupancyGridConverter(grid_map::GridMap& gd_map); //Convert given grid_map
             Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
             Eigen::Vector2d gridref_to_euc(Eigen::Vector2d pos);
 

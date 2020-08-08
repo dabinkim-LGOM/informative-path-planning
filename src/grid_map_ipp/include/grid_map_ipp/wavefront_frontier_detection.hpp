@@ -6,6 +6,7 @@ using namespace std;
 
 const int MAP_OPEN_LIST = 1, MAP_CLOSE_LIST = 2, FRONTIER_OPEN_LIST = 3, FRONTIER_CLOSE_LIST = 4;
 const double OCC_THRESHOLD = 0.85;
+const double FREE_THRESHOLD = 0.15;
 const int N_S = 8;
 const int MIN_FOUND = 1;
 
@@ -48,10 +49,11 @@ namespace grid_map{
 
     
 
-        bool is_in_map(grid_map::Size map_size, grid_map::Index cur_index)
-    {
-        int map_size_x = map_size(0,0); int map_size_y = map_size(0,1);
-        if(cur_index(0,0) < map_size_x && cur_index(0,0)>=0 && cur_index(0,1) <map_size_y && cur_index(0,1)>=0)
+    bool is_in_map(grid_map::Size map_size, grid_map::Index cur_index)
+    {   
+        ROS_INFO("In In map");
+        int map_size_x = map_size(0,0); int map_size_y = map_size(1,0);
+        if(cur_index(0,0) < map_size_x && cur_index(0,0)>=0 && cur_index(1,0) <map_size_y && cur_index(1,0)>=0)
         {
             return true;
         }
@@ -60,8 +62,9 @@ namespace grid_map{
         }
     }
 
-    vector<vector<grid_map::Index> > wfd(const grid_map::GridMap& map_, grid_map::Index pose) {	
-        
+    vector<vector<grid_map::Index> > wfd(const grid_map::GridMap& map_, grid_map::Index pose)
+    {	
+        // cout << "First" << endl;
         vector<vector<grid_map::Index> > frontiers;
         // Cell state list for map/frontier open/closed
         // int map_size = map_height * map_width;
@@ -74,25 +77,27 @@ namespace grid_map{
         grid_map::Index adj_vector[N_S];
         grid_map::Index v_neighbours[N_S];
         //
-        //ROS_INFO("wfd 1");
+        ROS_INFO("wfd 1");
+
         while(!q_m.empty()) 
         {
-            //ROS_INFO("wfd 2");
+            ROS_INFO("wfd 2");
             grid_map::Index cur_pos = q_m.front();
             q_m.pop();
-            //ROS_INFO("cur_pos: %d, cell_state: %d",cur_pos, cell_states[cur_pos]);
+            ROS_INFO("cur_pos: %d,%d cell_state: %d", cur_pos(0,0), cur_pos(1,0), cell_states[cur_pos]);
             // Skip if map_close_list
             if(cell_states[cur_pos] == MAP_CLOSE_LIST)
                 continue;
             if(is_frontier_point(map_, cur_pos)) {
+                ROS_INFO("wfd 2.5");
                 queue<grid_map::Index> q_f;
                 vector<grid_map::Index> new_frontier;
                 q_f.push(cur_pos);
                 cell_states[cur_pos] = FRONTIER_OPEN_LIST;
                 // Second BFS
                 while(!q_f.empty()) {
-                    //ROS_INFO("wfd 3");
-                    //ROS_INFO("Size: %d", q_f.size());
+                    ROS_INFO("wfd 3");
+                    ROS_INFO("Size: %d", q_f.size());
                     grid_map::Index n_cell = q_f.front();
                     q_f.pop();
                     //
@@ -100,17 +105,17 @@ namespace grid_map{
                         continue;
                     //
                     if(is_frontier_point(map_, n_cell)) {
-                        //ROS_INFO("adding %d to frontiers", n_cell);
+                        ROS_INFO("adding %d to frontiers", n_cell);
                         new_frontier.push_back(n_cell);
                         get_neighbours(adj_vector, cur_pos);			
                         //
-                        //ROS_INFO("wfd 3.5");
+                        ROS_INFO("wfd 3.5");
                         for(int i = 0; i < N_S; i++) {
                             if(is_in_map(map_size, adj_vector[i])) {
                                 if(cell_states[adj_vector[i]] != FRONTIER_OPEN_LIST && 
                                     cell_states[adj_vector[i]] != FRONTIER_CLOSE_LIST && 
                                     cell_states[adj_vector[i]] != MAP_CLOSE_LIST) {
-                                    //ROS_INFO("wfd 4");
+                                    ROS_INFO("wfd 4");
                                     if(map_.at("base",adj_vector[i]) != 100) {
                                         q_f.push(adj_vector[i]);
                                         cell_states[adj_vector[i]] = FRONTIER_OPEN_LIST;
@@ -124,17 +129,17 @@ namespace grid_map{
                 if(new_frontier.size() > 2)
                     frontiers.push_back(new_frontier);
                 
-                //ROS_INFO("WFD 4.5");
+                ROS_INFO("WFD 4.5");
                 for(unsigned int i = 0; i < new_frontier.size(); i++) {
                     cell_states[new_frontier[i]] = MAP_CLOSE_LIST;
-                    //ROS_INFO("WFD 5");
+                    ROS_INFO("WFD 5");
                 }
             }
             //
             get_neighbours(adj_vector, cur_pos);
 
             for (int i = 0; i < N_S; ++i) {
-                //ROS_INFO("wfd 6");
+                ROS_INFO("wfd 6");
                 if( is_in_map(map_size, adj_vector[i])) {
                     if(cell_states[adj_vector[i]] != MAP_OPEN_LIST &&  cell_states[adj_vector[i]] != MAP_CLOSE_LIST) {
                         get_neighbours(v_neighbours, adj_vector[i]);
@@ -154,16 +159,17 @@ namespace grid_map{
                     }
                 }
             }
-            //ROS_INFO("wfd 7");
+            ROS_INFO("wfd 7");
             cell_states[cur_pos] = MAP_CLOSE_LIST;
-            //ROS_INFO("wfd 7.1");
+            ROS_INFO("wfd 7.1");
         }
-        // ROS_INFO("wfd 8");
+        ROS_INFO("wfd 8");
         return frontiers;
     }
 
 
-    void get_neighbours(grid_map::Index n_array[], grid_map::Index position){
+    void get_neighbours(grid_map::Index n_array[], grid_map::Index position)
+    {
         n_array[0] = position + (1,1);
         n_array[1] = position + (1,0);
         n_array[2] = position + (1,-1);
@@ -175,7 +181,8 @@ namespace grid_map{
         
     }
 
-    void get_big_neighbours(int n_array[], int position, int map_width) {
+    void get_big_neighbours(int n_array[], int position, int map_width)
+    {
         n_array[0] = position - map_width - 1;
         n_array[1] = position - map_width; 
         n_array[2] = position - map_width + 1; 
@@ -205,23 +212,31 @@ namespace grid_map{
 
 
 
-    bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point) {
+    bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point)
+    {
+        ROS_INFO("In Frontier Point");
         // The point under consideration must be known
         if(map.at("base", point) == -1) {
             return false;
         }
         grid_map::Size map_size = map.getSize();
         grid_map::Index locations[N_S]; 
+        ROS_INFO("Before Neighbor");
         get_neighbours(locations, point);
+
+        ROS_INFO("After Neighbor");
         int found = 0;
         for(int i = 0; i < N_S; i++) {
+            ROS_INFO("Location Index: %d, %d", locations[i](0,0), locations[i](1,0));
+            ROS_INFO("Map size: %d, %d", map_size(0,0), map_size(1,0));
             if(is_in_map(map_size, locations[i])) {
+                ROS_INFO("Outside of Is In Map");
                 // None of the neighbours should be occupied space.		
                 if(map.at("base",locations[i]) > OCC_THRESHOLD) {
                     return false;
                 }
                 //At least one of the neighbours is open and known space, hence frontier point
-                if(map.at("base",locations[i]) == 0) {
+                if(map.at("base",locations[i]) < FREE_THRESHOLD) {
                     found++;
                     //
                     if(found == MIN_FOUND) 
@@ -230,7 +245,9 @@ namespace grid_map{
                 //}
             }
         }
+        ROS_INFO("Getting Out of Frontier Point");
         return false;
+
     }
 
     int get_row_from_offset(int offset, int width) {

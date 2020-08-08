@@ -25,8 +25,8 @@ PYBIND11_MODULE(grid_map_ipp_module, m)
     py::class_<ObstacleGridConverter>(m, "ObstacleGridConverter")
         .def(py::init<double &, double &, int &,
                       std::vector<Eigen::Array4d> &>())
-        .def("grid_map_converter", &ObstacleGridConverter::GridMapConverter)
-        .def("OccupancyGridConverter", &ObstacleGridConverter::OccupancyGridConverter);
+        .def("grid_map_converter", (nav_msgs::OccupancyGrid (ObstacleGridConverter::*)()) &ObstacleGridConverter::GridMapConverter)
+        .def("OccupancyGridConverter",(nav_msgs::OccupancyGrid (ObstacleGridConverter::*)(grid_map::GridMap&)) &ObstacleGridConverter::OccupancyGridConverter);
     
     py::class_<Raytracer>(m, "Raytracer")
         .def(py::init<double &, double &, int &,

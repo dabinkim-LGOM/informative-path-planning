@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED ( VERSION 2.8.12 )
 PROJECT(grid_map_ipp)
-
+set(ROS_BUILD_TYPE Debug)
 # add_definitions(-std=c++17)
 
 find_package(catkin REQUIRED
@@ -34,16 +34,25 @@ target_include_directories(grid_map_ipp_library PUBLIC ${FRONTIER_INCLUDE_DIRS})
 target_link_libraries(grid_map_ipp_library ${FRONTIER_LIBRARIES})
 
 add_executable(test_lidar test/test_lidar.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp)
+add_executable(test_frontier test/test_frontier.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp)
 
 target_include_directories(test_lidar PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
                                              ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
                                              ${grid_map_sdf_INCLUDE_DIRS}
                                              )
 
+target_include_directories(test_frontier PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
+                          ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
+                          ${grid_map_sdf_INCLUDE_DIRS}
+                          )
+
 target_link_libraries(test_lidar ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
                                  ${grid_map_sdf_LIBRARIES}  
                                  ${grid_map_ipp_LIBRARIES})
 
+target_link_libraries(test_frontier ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
+                      ${grid_map_sdf_LIBRARIES}  
+                      ${grid_map_ipp_LIBRARIES})
                                  
 set(PYBIND11_CPP_STANDARD -std=c++11)
 find_package(pybind11 PATHS /usr/local/share/cmake/pybind11)

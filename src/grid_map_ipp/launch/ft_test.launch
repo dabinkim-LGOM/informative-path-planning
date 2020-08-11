@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-    <node name="test_frontier" pkg="grid_map_ipp" type="test_frontier" output="screen"/>
-    <node name="rviz" pkg="rviz" type ="rviz" output="screen"/>
+    <node name="test_frontier" pkg="grid_map_ipp" type="test_frontier" output="screen">
+        <param name="x_idx" value="51"/>
+        <param name="y_idx" value="50"/> 
+    </node>
+
+    <node name="rviz" pkg="rviz" type ="rviz" args="-d $(find grid_map_ipp)/rviz/default.rviz" output="screen"/>
 </launch>

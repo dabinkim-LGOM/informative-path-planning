@@ -51,7 +51,7 @@ namespace grid_map{
 
     bool is_in_map(grid_map::Size map_size, grid_map::Index cur_index)
     {   
-        ROS_INFO("In In map");
+        // ROS_INFO("In In map");
         int map_size_x = map_size(0,0); int map_size_y = map_size(1,0);
         if(cur_index(0,0) < map_size_x && cur_index(0,0)>=0 && cur_index(1,0) <map_size_y && cur_index(1,0)>=0)
         {
@@ -77,27 +77,28 @@ namespace grid_map{
         grid_map::Index adj_vector[N_S];
         grid_map::Index v_neighbours[N_S];
         //
-        ROS_INFO("wfd 1");
+        // ROS_INFO("wfd 1");
 
+        // vector<grid_map::Index> inspected; 
         while(!q_m.empty()) 
         {
-            ROS_INFO("wfd 2");
+            // ROS_INFO("wfd 2");
             grid_map::Index cur_pos = q_m.front();
             q_m.pop();
-            ROS_INFO("cur_pos: %d,%d cell_state: %d", cur_pos(0,0), cur_pos(1,0), cell_states[cur_pos]);
+            // ROS_INFO("cur_pos: %d,%d cell_state: %d", cur_pos(0,0), cur_pos(1,0), cell_states[cur_pos]);
             // Skip if map_close_list
             if(cell_states[cur_pos] == MAP_CLOSE_LIST)
                 continue;
-            if(is_frontier_point(map_, cur_pos)) {
-                ROS_INFO("wfd 2.5");
+            if(is_frontier_point(map_, cur_pos)) { //TODO
+                // ROS_INFO("wfd 2.5");
                 queue<grid_map::Index> q_f;
                 vector<grid_map::Index> new_frontier;
                 q_f.push(cur_pos);
                 cell_states[cur_pos] = FRONTIER_OPEN_LIST;
                 // Second BFS
                 while(!q_f.empty()) {
-                    ROS_INFO("wfd 3");
-                    ROS_INFO("Size: %d", q_f.size());
+                    // ROS_INFO("wfd 3");
+                    // ROS_INFO("Size: %d", q_f.size());
                     grid_map::Index n_cell = q_f.front();
                     q_f.pop();
                     //
@@ -105,18 +106,19 @@ namespace grid_map{
                         continue;
                     //
                     if(is_frontier_point(map_, n_cell)) {
-                        ROS_INFO("adding %d to frontiers", n_cell);
+                        // ROS_INFO("adding %d, %d to frontiers", n_cell(0,0), n_cell(1,0));
                         new_frontier.push_back(n_cell);
                         get_neighbours(adj_vector, cur_pos);			
                         //
-                        ROS_INFO("wfd 3.5");
+                        // ROS_INFO("wfd 3.5");
                         for(int i = 0; i < N_S; i++) {
+                            // ROS_INFO("Neighbor Check: %d, %d", adj_vector[i](0,0), adj_vector[i](1,0));
                             if(is_in_map(map_size, adj_vector[i])) {
                                 if(cell_states[adj_vector[i]] != FRONTIER_OPEN_LIST && 
                                     cell_states[adj_vector[i]] != FRONTIER_CLOSE_LIST && 
                                     cell_states[adj_vector[i]] != MAP_CLOSE_LIST) {
-                                    ROS_INFO("wfd 4");
-                                    if(map_.at("base",adj_vector[i]) != 100) {
+                                    // ROS_INFO("wfd 4");
+                                    if( abs(map_.at("base",adj_vector[i]) -0.5) < 0.1) {
                                         q_f.push(adj_vector[i]);
                                         cell_states[adj_vector[i]] = FRONTIER_OPEN_LIST;
                                     }
@@ -126,27 +128,29 @@ namespace grid_map{
                     }
                     cell_states[n_cell] = FRONTIER_CLOSE_LIST;
                 }
-                if(new_frontier.size() > 2)
+                if(new_frontier.size() >= 1)
                     frontiers.push_back(new_frontier);
                 
-                ROS_INFO("WFD 4.5");
+                // ROS_INFO("WFD 4.5");
+
+                //TODO:WHY? What for?
                 for(unsigned int i = 0; i < new_frontier.size(); i++) {
                     cell_states[new_frontier[i]] = MAP_CLOSE_LIST;
-                    ROS_INFO("WFD 5");
+                    // ROS_INFO("WFD 5");
                 }
             }
             //
             get_neighbours(adj_vector, cur_pos);
 
             for (int i = 0; i < N_S; ++i) {
-                ROS_INFO("wfd 6");
+                // ROS_INFO("wfd 6");
                 if( is_in_map(map_size, adj_vector[i])) {
                     if(cell_states[adj_vector[i]] != MAP_OPEN_LIST &&  cell_states[adj_vector[i]] != MAP_CLOSE_LIST) {
                         get_neighbours(v_neighbours, adj_vector[i]);
                         bool map_open_neighbor = false;
                         for(int j = 0; j < N_S; j++) {
                             if(is_in_map(map_size, v_neighbours[j])) {
-                                if(map_.at("base", v_neighbours[j]) < OCC_THRESHOLD && map_.at("base", v_neighbours[j]) >= 0) { //>= 0 AANPASSING
+                                if( map_.at("base", v_neighbours[j]) < FREE_THRESHOLD) { //>= 0 AANPASSING
                                     map_open_neighbor = true;
                                     break;
                                 }
@@ -154,34 +158,82 @@ namespace grid_map{
                         }
                         if(map_open_neighbor) {
                             q_m.push(adj_vector[i]);
+                            // ROS_INFO("ENQUED Index of %d, %d", adj_vector[i](0,0), adj_vector[i](1,0));
                             cell_states[adj_vector[i]] = MAP_OPEN_LIST;
                         }
                     }
                 }
             }
-            ROS_INFO("wfd 7");
+            // ROS_INFO("wfd 7");
             cell_states[cur_pos] = MAP_CLOSE_LIST;
-            ROS_INFO("wfd 7.1");
+            // ROS_INFO("wfd 7.1");
         }
-        ROS_INFO("wfd 8");
+        // ROS_INFO("wfd 8");
         return frontiers;
     }
 
 
     void get_neighbours(grid_map::Index n_array[], grid_map::Index position)
-    {
-        n_array[0] = position + (1,1);
-        n_array[1] = position + (1,0);
-        n_array[2] = position + (1,-1);
-        n_array[3] = position + (0,1);
-        n_array[4] = position + (0,-1);
-        n_array[5] = position + (-1,1);
-        n_array[6] = position + (-1,0);
-        n_array[7] = position + (-1,-1);
+    {   
+        Eigen::Array2i n1(1,1);     Eigen::Array2i n4(0,1);     Eigen::Array2i n6(-1,1);
+        Eigen::Array2i n2(1,0);     Eigen::Array2i n5(0,-1);    Eigen::Array2i n7(-1,0);
+        Eigen::Array2i n3(1,-1);                                Eigen::Array2i n8(-1,-1);
+        
+        n_array[0] = position + n1;
+        n_array[1] = position + n2;
+        n_array[2] = position + n3;
+        n_array[3] = position + n4;
+        n_array[4] = position + n5;
+        n_array[5] = position + n6;
+        n_array[6] = position + n7;
+        n_array[7] = position + n8;
         
     }
 
-    void get_big_neighbours(int n_array[], int position, int map_width)
+    bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point)
+    {
+        // ROS_INFO("In Frontier Point");
+        // The point under consideration must be known
+        if( abs(map.at("base", point) - 0.5) < 0.1) {
+            return false;
+        }
+        grid_map::Size map_size = map.getSize();
+        grid_map::Index locations[N_S]; 
+        get_neighbours(locations, point);
+
+        int found = 0;
+        for(int i = 0; i < N_S; ++i) {
+            // ROS_INFO("Location Index: %d, %d, %d", locations[i](0,0), locations[i](1,0), i);
+            if(is_in_map(map_size, locations[i])) {
+                // ROS_INFO("Outside of Is In Map");
+                // None of the neighbours should be occupied space.		
+                if(map.at("base",locations[i]) > OCC_THRESHOLD) {
+                    return false;
+                }
+                //At least one of the neighbours is unknown, hence frontier point
+                if( abs(map.at("base",locations[i]) - 0.5) < 0.2) {
+                    found++;
+                    //
+                    if(found == MIN_FOUND) 
+                        return true;
+                }
+                //}
+            }
+        }
+        // ROS_INFO("Getting Out of Frontier Point");
+        return false;
+
+    }
+
+    int get_row_from_offset(int offset, int width) {
+        return offset / width;
+    }
+
+    int get_column_from_offset(int offset, int width) {
+        return offset % width;	
+    }
+
+        void get_big_neighbours(int n_array[], int position, int map_width)
     {
         n_array[0] = position - map_width - 1;
         n_array[1] = position - map_width; 
@@ -210,52 +262,5 @@ namespace grid_map{
         n_array[23] = position - (map_width) - 2;
     }
 
-
-
-    bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point)
-    {
-        ROS_INFO("In Frontier Point");
-        // The point under consideration must be known
-        if(map.at("base", point) == -1) {
-            return false;
-        }
-        grid_map::Size map_size = map.getSize();
-        grid_map::Index locations[N_S]; 
-        ROS_INFO("Before Neighbor");
-        get_neighbours(locations, point);
-
-        ROS_INFO("After Neighbor");
-        int found = 0;
-        for(int i = 0; i < N_S; i++) {
-            ROS_INFO("Location Index: %d, %d", locations[i](0,0), locations[i](1,0));
-            ROS_INFO("Map size: %d, %d", map_size(0,0), map_size(1,0));
-            if(is_in_map(map_size, locations[i])) {
-                ROS_INFO("Outside of Is In Map");
-                // None of the neighbours should be occupied space.		
-                if(map.at("base",locations[i]) > OCC_THRESHOLD) {
-                    return false;
-                }
-                //At least one of the neighbours is open and known space, hence frontier point
-                if(map.at("base",locations[i]) < FREE_THRESHOLD) {
-                    found++;
-                    //
-                    if(found == MIN_FOUND) 
-                        return true;
-                }
-                //}
-            }
-        }
-        ROS_INFO("Getting Out of Frontier Point");
-        return false;
-
-    }
-
-    int get_row_from_offset(int offset, int width) {
-        return offset / width;
-    }
-
-    int get_column_from_offset(int offset, int width) {
-        return offset % width;	
-    }
 };
 }

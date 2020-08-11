@@ -48,6 +48,9 @@ visualization_msgs::Marker generate_marker(geometry_msgs::Point pt, double goal_
 
 int main(int argc, char** argv)
 {
+    ros::init(argc, argv, "test_frontier");
+    ros::NodeHandle nh("");
+
     int num_box = 5;
     double dim_x = 5.0; double dim_y = 5.0;
     std::list<std::pair<double,double> > center;
@@ -70,7 +73,7 @@ int main(int argc, char** argv)
         obstacles.push_back(point);
     }
     
-
+    //ObstacleGridConverter : Conventional x, y coordinate 
     grid_map::ObstacleGridConverter converter(100.0, 100.0, 5, obstacles);
     grid_map::GridMap gt_map = converter.GridMapConverter();
 
@@ -84,7 +87,12 @@ int main(int argc, char** argv)
 
     nav_msgs::OccupancyGrid occ_grid = converter.OccupancyGridConverter(gt_map);
     grid_map::Frontier ft;
-    grid_map::Index idx(70,70);
+
+    int x_idx; int y_idx;
+    nh.param("x_idx", x_idx, 50);
+    nh.param("y_idx", y_idx, 50);
+
+    grid_map::Index idx(51,50);
     vector<vector<grid_map::Index> > frontier_vec = ft.wfd(gt_map, idx);
 
     vector<visualization_msgs::Marker> marker_vec;
@@ -98,14 +106,12 @@ int main(int argc, char** argv)
             gt_map.getPosition(idx, pos);
             geometry_msgs::Point pt; 
             pt.x = pos(0,0); pt.y = pos(1,0); pt.z = 0.0;
-            ROS_INFO("%d th Frontier point %f, %f", i*frontier_vec.size()+j, pt.x, pt.y);
+            ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
             visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num);
             marker_vec.push_back(marker);
         }
     }
 
-    ros::init(argc, argv, "test_frontier");
-    ros::NodeHandle nh("");
     ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     ros::Rate rate(30.0);
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 1, true);

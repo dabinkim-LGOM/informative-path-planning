@@ -171,11 +171,51 @@ namespace RayTracer{
         return return_pair;
     }
 
-    std::vector<std::vector<grid_map::Index> > Lidar_sensor::frontier_detection(grid_map::Position cur_pos){
+    std::vector<Eigen::Vector2d > Lidar_sensor::frontier_detection(grid_map::Position cur_pos){
         grid_map::Frontier ft;
         grid_map::Index cur_idx;
-        belief_map_.getIndex(cur_pos, cur_idx);
+        //Convert conventional xy to grid_map xy coordinate
+        grid_map::Size size; 
+        size = belief_map_.getSize();
+        int x_size = size(1); int y_size = size(0);
+        
+        grid_map::Position pos_grid;
+        pos_grid(0) = cur_pos(1) - y_size /2.0;
+        pos_grid(1) = x_size / 2.0 - cur_pos(0);
+        
+        belief_map_.getIndex(pos_grid, cur_idx);
         vector<vector<grid_map::Index> > frontier_vector = ft.wfd(belief_map_, cur_idx);
-        return frontier_vector;
+
+        //Convert index from grid_map to conventional xy cooridnate
+        vector<Eigen::Vector2d> frontier_position; 
+        for(int i=0; i<frontier_vector.size(); ++i){
+            for(int j=0; j<frontier_vector.at(i).size(); ++j){
+                grid_map::Position trans_pos; 
+                belief_map_.getPosition(frontier_vector.at(i).at(j), trans_pos);
+                Eigen::Vector2d conv_pos; 
+                conv_pos(0) = x_size /2.0 - trans_pos(1);
+                conv_pos(1) = y_size/2.0 + trans_pos(0);
+                frontier_position.push_back(conv_pos);
+            }
+        }
+        return frontier_position;
+    }
+
+    /**
+     * @brief Clustering frontier points. Greedy Clustering Algorithm is used. 
+     * 
+     * @param frontier_pts 
+     * @return std::vector<Eigen::Vector2d> 
+     */
+    std::vector<Eigen::Vector2d> Lidar_sensor::frontier_clustering(std::vector<Eigen::Vector2d> frontier_pts){
+        std::vector<Eigen::Vector2d> frontier_centers; 
+        //Initial guess
+        Eigen::Vector2d center = frontier_pts.front();
+        
+
+    }
+
+    double dist(Eigen::Vector2d pt1, Eigen::Vector2d pt2){
+        return sqrt( (pt1(0)-pt2(0)) * (pt1(0)-pt2(0)) + (pt1(1)-pt2(1)) * (pt1(1)-pt2(1)) );
     }
 }

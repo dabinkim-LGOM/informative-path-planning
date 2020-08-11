@@ -194,9 +194,11 @@ namespace grid_map{
     {
         // ROS_INFO("In Frontier Point");
         // The point under consideration must be known
-        if( abs(map.at("base", point) - 0.5) < 0.1) {
+        if( abs(map.at("base", point) - 0.5) < 0.2) {
             return false;
         }
+        if(map.at("base", point) > OCC_THRESHOLD)
+            return false;
         grid_map::Size map_size = map.getSize();
         grid_map::Index locations[N_S]; 
         get_neighbours(locations, point);

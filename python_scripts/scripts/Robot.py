@@ -339,11 +339,13 @@ class Nonmyopic_Robot(Robot):
 
             # print(np.array([data[-1,0],data[-1,1]]))
             frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
-            print(frontier_set)
+            print("Frontier test")
+            print("Data", np.array([data[-1,0],data[-1,1]]))
+            # print(frontier_set)
 
             self.trajectory.append(best_path)
 
-            visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, True)
+            visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, True, True)
             # visual.show(data)
             visual.visualization(t)
             

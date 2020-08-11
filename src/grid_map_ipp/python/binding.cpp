@@ -42,6 +42,7 @@ PYBIND11_MODULE(grid_map_ipp_module, m)
         .def("get_measurement", &Lidar_sensor::get_measurement)
         .def("get_belief_map", &Lidar_sensor::get_belief_map)
         .def("frontier_detection", &Lidar_sensor::frontier_detection)
+        .def("selected_fts", &Lidar_sensor::set_selected_frontier)
         .def("get_occ_value", &Lidar_sensor::get_occ_value);
         // .def()
     py::class_<GridMapSDF>(m, "GridMapSDF")

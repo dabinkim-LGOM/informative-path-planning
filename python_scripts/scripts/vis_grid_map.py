@@ -11,7 +11,7 @@ import matplotlib.colors as mcolors
 import matplotlib.collections as mcoll
 
 class visualization():
-    def __init__(self, mapsize, resol, lidar_belief, reward_function, save):
+    def __init__(self, mapsize, resol, lidar_belief, reward_function, frontier, is_frontier, save):
         '''
         - mapsize : Axis length of the map (m)
         - resol : Resolution of grid 
@@ -22,15 +22,17 @@ class visualization():
         self.lidar = lidar_belief 
         self.save = save #Bool value
         self.reward_function = reward_function
+        self.frontier = frontier
+        self.is_frontier = is_frontier
 
     def visualization(self, t):
         data = self.iterator()
         fig = self.show(data)
 
         if self.save:
-            if not os.path.exists('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/'):
-                os.makedirs('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/')
-            fig.savefig('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/' + str(t) + '.png')
+            if not os.path.exists('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/'):
+                os.makedirs('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/')
+            fig.savefig('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/' + str(t) + '.png')
 
 
     def iterator(self):
@@ -60,10 +62,17 @@ class visualization():
         # norm = mcolors.BoundaryNorm(bounds, cmap.N)
         im = ax.imshow(data, cmap="gray", vmin=0, vmax=1, origin="lower")
         grid = np.arange(-self.resol/2.0, self.mapsize+1, self.resol)
-        xmin, xmax, ymin, ymax = -self.resol/2.0, self.mapsize + self.resol/2.0, -self.resol/2.0, self.mapsize + self.resol/2.0
 
+        if(self.is_frontier):
+            self.show_frontier()
+        xmin, xmax, ymin, ymax = -self.resol/2.0, self.mapsize + self.resol/2.0, -self.resol/2.0, self.mapsize + self.resol/2.0
         # plt.show()
         return fig
+        
+    def show_frontier(self):
+        for pt in self.frontier:
+            print('x=', pt[0], 'y=', pt[1])
+            plt.scatter(x=pt[0], y=pt[1], c='r', s=3)
         
 
 

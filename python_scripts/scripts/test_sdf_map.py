@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     range_max, range_min, hangle_max, hangle_min, angle_resol, resol = 9.5, 0.5, 180.0, -180.0, 5.0, 1.0
     lidar = grid.Lidar_sensor(range_max, range_min, hangle_max, hangle_min, angle_resol, map_max, map_max, resol, raytracer)
-
+    
     '''
     Planning Setup 
     '''

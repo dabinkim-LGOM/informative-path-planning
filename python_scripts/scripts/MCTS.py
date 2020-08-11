@@ -56,12 +56,12 @@ class MCTS():
         self.tree = self.initialize_tree()
         time_start = time.clock()
 
-        self.sdf_map = self.generate_sdfmap(self.cp)
+        # self.sdf_map = self.generate_sdfmap(self.cp)
         print("Current timestep : ", self.t)
         
-        if self.sdf_map.is_exist_obstacle():
-            print("Here")
-            self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
+        # if self.sdf_map.is_exist_obstacle():
+        #     print("Here")
+        #     self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
 
         while time.clock() - time_start < self.budget:
             current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)

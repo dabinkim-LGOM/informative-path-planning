@@ -64,6 +64,8 @@ namespace RayTracer{
             grid_map::GridMap belief_map_;
             Raytracer raytracer_;
             string layer_;
+
+            vector<Eigen::Vector2d> selected_fts_;
             
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
@@ -124,8 +126,13 @@ namespace RayTracer{
             }
             Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
 
-            //Frontier Detector, Return frontier voxels as indices; 
-            vector<vector<grid_map::Index> > frontier_detection(grid_map::Position cur_pos);
+            //Frontier Detector, Return frontier voxels as position(conventional coordinate); 
+            vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
+            vector<Eigen::Vector2d> frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
+            void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
+            {
+                selected_fts_ = selected_fts;
+            }
     };
 
 }

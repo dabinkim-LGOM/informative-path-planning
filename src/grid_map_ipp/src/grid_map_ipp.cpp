@@ -1,6 +1,8 @@
 #include <grid_map_ipp/grid_map_ipp.hpp>
 #include <grid_map_ipp/grid_map_sdf.hpp>
 #include <Eigen/Dense>
+#include <util.hpp>
+#include <algorithm>
 
 
 namespace RayTracer{
@@ -212,7 +214,10 @@ namespace RayTracer{
         //Initial guess
         Eigen::Vector2d center = frontier_pts.front();
         
-
+        //Sort frontier points w.r.t. position (x first, then y.)
+        //Cut frontier points into clustering points. Based on threshold radius. 
+        sort(frontier_centers.begin(), frontier_centers.end(), compare);
+        
     }
 
     double dist(Eigen::Vector2d pt1, Eigen::Vector2d pt2){

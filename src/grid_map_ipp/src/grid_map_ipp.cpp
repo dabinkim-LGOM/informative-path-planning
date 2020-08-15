@@ -1,11 +1,36 @@
 #include <grid_map_ipp/grid_map_ipp.hpp>
 #include <grid_map_ipp/grid_map_sdf.hpp>
 #include <Eigen/Dense>
-#include <util.hpp>
+#include <grid_map_ipp/util.hpp>
 #include <algorithm>
-
+using namespace std;
 
 namespace RayTracer{
+    double dist(Eigen::Vector2d pt1, Eigen::Vector2d pt2){
+        return sqrt( (pt1(0,0)-pt2(0,0)) * (pt1(0,0)-pt2(0,0)) + (pt1(1,0)-pt2(1,0)) * (pt1(1,0)-pt2(1,0)) );
+    }
+
+    grid_map::GridMap Lidar_sensor::init_belief_map()                
+    {
+        vector<string> name;
+        name.clear();
+        name.push_back("base");
+        vector<string> x = name;
+        grid_map::GridMap map(x);
+
+        grid_map::Length len(map_size_x_, map_size_y_);
+        grid_map::Position zero(0.0, 0.0); //Zero Position of belief grid
+        // zero.x = 0.0; zero.y = 0.0;
+        map.setGeometry(len, resol_, zero);
+        map.add("base", 0.5); //Initialize map of prob. value with 0.5 (unknown)
+        // belief_map_ = map;
+        // cout << map.getLayers().at(0) << endl;
+        // cout << belief_map_.getLayers().at(0) << endl;
+
+        grid_map::Length size; size = map.getLength();
+        // cout << "size " << size(0) << " " << size(1) << endl;
+        return map;
+    }
 
     //Transform euclidean (x,y) position value to grid map reference frame
     Eigen::Vector2d Lidar_sensor::euc_to_gridref(Eigen::Vector2d pos)
@@ -173,6 +198,7 @@ namespace RayTracer{
         return return_pair;
     }
 
+
     std::vector<Eigen::Vector2d > Lidar_sensor::frontier_detection(grid_map::Position cur_pos){
         grid_map::Frontier ft;
         grid_map::Index cur_idx;
@@ -182,12 +208,15 @@ namespace RayTracer{
         int x_size = size(1); int y_size = size(0);
         
         grid_map::Position pos_grid;
-        pos_grid(0) = cur_pos(1) - y_size /2.0;
+        pos_grid(0) = cur_pos(1) - y_size/2.0;
         pos_grid(1) = x_size / 2.0 - cur_pos(0);
         
         belief_map_.getIndex(pos_grid, cur_idx);
+        cout << "BEFore BEFORE" << endl; 
+        cout << cur_idx << endl; 
         vector<vector<grid_map::Index> > frontier_vector = ft.wfd(belief_map_, cur_idx);
-
+        cout << frontier_vector.size() << endl; 
+        cout << "BEFore for" << endl; 
         //Convert index from grid_map to conventional xy cooridnate
         vector<Eigen::Vector2d> frontier_position; 
         for(int i=0; i<frontier_vector.size(); ++i){
@@ -200,27 +229,42 @@ namespace RayTracer{
                 frontier_position.push_back(conv_pos);
             }
         }
+        cout << frontier_position.size() << endl; 
         return frontier_position;
     }
 
-    /**
-     * @brief Clustering frontier points. Greedy Clustering Algorithm is used. 
-     * 
-     * @param frontier_pts 
-     * @return std::vector<Eigen::Vector2d> 
-     */
-    std::vector<Eigen::Vector2d> Lidar_sensor::frontier_clustering(std::vector<Eigen::Vector2d> frontier_pts){
-        std::vector<Eigen::Vector2d> frontier_centers; 
-        //Initial guess
-        Eigen::Vector2d center = frontier_pts.front();
-        
+
+    std::vector<std::vector<Eigen::Vector2d> > 
+    Lidar_sensor::frontier_clustering(std::vector<Eigen::Vector2d> frontier_pts){
+        std::vector<std::vector<Eigen::Vector2d> > clustered_frontiers; //Clustered_frontiers with index 
+        // Initial guess
+        // Eigen::Vector2d center = frontier_pts.front();
         //Sort frontier points w.r.t. position (x first, then y.)
         //Cut frontier points into clustering points. Based on threshold radius. 
-        sort(frontier_centers.begin(), frontier_centers.end(), compare);
+        sort(frontier_pts.begin(), frontier_pts.end(), grid_map::compare);
+        grid_map::Print_vec(frontier_pts);
+        cout << frontier_pts.size() << endl; 
+        int Num = 0;
         
+        Eigen::Vector2d cur_center = frontier_pts.at(0);
+        std::vector<Eigen::Vector2d> cur_cluster; 
+        for(int i=0; i< frontier_pts.size(); i++){
+
+            if( dist(cur_center, frontier_pts.at(i)) < ft_cluster_r_){
+                Num++;
+                cur_center = cur_center*(Num-1.0)/(Num)+(frontier_pts.at(i))/(double)(Num); 
+                cur_cluster.push_back(frontier_pts.at(i));
+            }
+            else{
+                clustered_frontiers.push_back(cur_cluster);
+                cur_cluster.clear();
+                cout << "Center x: " << cur_center(0,0) << " y: " << cur_center(1,0) << " distance: " << dist(cur_center, frontier_pts.at(i)) << endl; 
+                Num = 1;
+                cur_center = frontier_pts.at(i);
+                cur_cluster.push_back(cur_center);
+            }
+        }
+        return clustered_frontiers;
     }
 
-    double dist(Eigen::Vector2d pt1, Eigen::Vector2d pt2){
-        return sqrt( (pt1(0)-pt2(0)) * (pt1(0)-pt2(0)) + (pt1(1)-pt2(1)) * (pt1(1)-pt2(1)) );
-    }
 }

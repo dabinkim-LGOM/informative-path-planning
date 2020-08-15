@@ -65,6 +65,7 @@ namespace RayTracer{
             Raytracer raytracer_;
             string layer_;
 
+            double ft_cluster_r_ = 5.0;
             vector<Eigen::Vector2d> selected_fts_;
             
         public:
@@ -77,27 +78,7 @@ namespace RayTracer{
 
             ~Lidar_sensor() {}
             
-            grid_map::GridMap init_belief_map()                
-            {
-                vector<string> name;
-                name.clear();
-                name.push_back("base");
-                vector<string> x = name;
-                grid_map::GridMap map(x);
-
-                grid_map::Length len(map_size_x_, map_size_y_);
-                grid_map::Position zero(0.0, 0.0); //Zero Position of belief grid
-                // zero.x = 0.0; zero.y = 0.0;
-                map.setGeometry(len, resol_, zero);
-                map.add("base", 0.5); //Initialize map of prob. value with 0.5 (unknown)
-                // belief_map_ = map;
-                // cout << map.getLayers().at(0) << endl;
-                // cout << belief_map_.getLayers().at(0) << endl;
-
-                grid_map::Length size; size = map.getLength();
-                // cout << "size " << size(0) << " " << size(1) << endl;
-                return map;
-            }
+            grid_map::GridMap init_belief_map();              
 
             void get_measurement(Pose& cur_pos);//Lidar measurement from current pose. 
             pair<vector<grid_map::Index>, bool> gen_single_ray(grid_map::Position& start_pos, grid_map::Position& end_pos); //Single raycasting
@@ -118,6 +99,9 @@ namespace RayTracer{
             grid_map::GridMap get_belief_map(){
                 return belief_map_;
             }
+            void set_belief_map(grid_map::GridMap gridmap){
+                belief_map_ = gridmap;
+            }
             grid_map::GridMap get_submap(Eigen::Vector2d pos, Eigen::Array2d length){
                 bool isSuccess = true;
                 // grid_map::GridMap full_map = lidar.get_belief_map();
@@ -128,7 +112,7 @@ namespace RayTracer{
 
             //Frontier Detector, Return frontier voxels as position(conventional coordinate); 
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
-            vector<Eigen::Vector2d> frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
+            vector<vector<Eigen::Vector2d> >  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
             void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
             {
                 selected_fts_ = selected_fts;

@@ -1,3 +1,6 @@
+#ifndef WAVEFRONT_HPP
+#define WAVEFRONT_HPP
+
 #include <ctime>
 #include <queue>
 #include "grid_map_core/GridMap.hpp"
@@ -266,3 +269,6 @@ namespace grid_map{
 
 };
 }
+
+
+#endif

@@ -5,10 +5,12 @@
 #include "grid_map_core/iterators/iterators.hpp"
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
 #include "grid_map_ipp/wavefront_frontier_detection.hpp"
+#include "SFC/SFC.hpp"
 #include <Eigen/Dense>
 #include <vector>
 #include <iostream>
 #include <string>
+#include <unordered_set>
 
 using namespace std;
 
@@ -62,18 +64,23 @@ namespace RayTracer{
             double map_size_x_;
             double map_size_y_;
             grid_map::GridMap belief_map_;
+            grid_map::Size map_size_;
             Raytracer raytracer_;
             string layer_;
 
             double ft_cluster_r_ = 5.0;
             vector<Eigen::Vector2d> selected_fts_;
             
+            std::unordered_set<grid_map::Index> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
+            Eigen::Vector2d submap_length_(20.0, 20.0); //Submap length for local path optimization 
+
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
              : range_max_(range_max), range_min_(range_min), hangle_max_(hangle_max), hangle_min_(hangle_min), angle_resol_(angle_resol), map_size_x_(map_size_x), map_size_y_(map_size_y)
              , resol_(resol), raytracer_(raytracer)
              {
                  belief_map_ = init_belief_map();
+                 map_size_ = belief_map_.getSize();
              }
 
             ~Lidar_sensor() {}
@@ -99,24 +106,32 @@ namespace RayTracer{
             grid_map::GridMap get_belief_map(){
                 return belief_map_;
             }
-            void set_belief_map(grid_map::GridMap gridmap){
-                belief_map_ = gridmap;
-            }
-            grid_map::GridMap get_submap(Eigen::Vector2d pos, Eigen::Array2d length){
+            grid_map::GridMap get_submap(Eigen::Vector2d& pos, Eigen::Array2d& length){
                 bool isSuccess = true;
                 // grid_map::GridMap full_map = lidar.get_belief_map();
                 grid_map::GridMap map = belief_map_.getSubmap(pos, length, isSuccess);
                 return map;
             }
-            Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
+            std::unordered_map<grid_map::Index> get_obstacles(){
+                return obstacles_;
+            }
+
+            void set_belief_map(grid_map::GridMap& gridmap){
+                belief_map_ = gridmap;
+            }
+            
 
             //Frontier Detector, Return frontier voxels as position(conventional coordinate); 
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
             vector<vector<Eigen::Vector2d> >  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
+            //By acquisiton functions of frontier points, Python module selects frontier values to generate SFC. 
             void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
             {
                 selected_fts_ = selected_fts;
             }
+
+            //Construct SFC based on frontiers
+            void construct_SFC(Eigen::Vector2d& pos);
     };
 
 }

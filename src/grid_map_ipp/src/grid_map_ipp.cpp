@@ -32,29 +32,15 @@ namespace RayTracer{
         return map;
     }
 
-    //Transform euclidean (x,y) position value to grid map reference frame
-    Eigen::Vector2d Lidar_sensor::euc_to_gridref(Eigen::Vector2d pos)
-    {
-        // cout << "WHAT?" << endl;
-        // pos(0) = pos(0) - map_size_x_/2.0;
-        // pos(1) = pos(1) - map_size_y_/2.0;
-        // cout << "WHAT2?" << endl;
-        //Rotation (-pi/2) w.r.t. z direction
-        Eigen::Vector2d grid_pos;
-        grid_pos(0) = pos(1) - map_size_x_ /2.0;
-        grid_pos(1) = -1.0*pos(0) + map_size_y_ /2.0;
-        // cout << "WHAT3?" << grid_pos(0) << " " << grid_pos(1) << endl;
-        return grid_pos;
-    }
-    
+    //Main Loop for Lidar Sensor measurement
     void Lidar_sensor::get_measurement(Pose& cur_pos)
     {   /**
         cur_pos : Eucliden reference frame
         start_pos, end_pos : GridMap frame
         **/
-
+        grid_map::Size map_size = belief_map_.getSize();
         grid_map::Position pre_transform_pos(cur_pos.x, cur_pos.y);
-        grid_map::Position start_pos = euc_to_gridref(pre_transform_pos);
+        grid_map::Position start_pos = euc_to_gridref(pre_transform_pos, map_size);
         // cout << start_pos(0) << " " << start_pos(1) << endl;
         grid_map::Index startIndex;
         belief_map_.getIndex(start_pos, startIndex);
@@ -88,13 +74,15 @@ namespace RayTracer{
             }
 
             grid_map::Position pre_transform_pos(end_pos_x, end_pos_y);
-            grid_map::Position end_pos(euc_to_gridref(pre_transform_pos));
+            grid_map::Position end_pos(euc_to_gridref(pre_transform_pos, map_size));
             pair< vector<grid_map::Index>, bool> idx = gen_single_ray(start_pos, end_pos); //Return free voxel index & true: Occupied voxel
                                                                                            //                          false: no Occupied voxel
 
             if(idx.second){
                 lidar_free_vec.insert(lidar_free_vec.end(), idx.first.begin(), --idx.first.end()); //Concatenate two vectors
                 lidar_collision_vec.push_back(idx.first.back());
+
+                obstacles_.insert(idx.first.back()); //Insert Obstacle Index into unordered_map 
             }
             else{
                 lidar_free_vec.insert(lidar_free_vec.end(), idx.first.begin(), idx.first.end()); //Concatenate two vectors
@@ -157,6 +145,7 @@ namespace RayTracer{
                 
         // RayTracer raytracer; 
         pair<vector<grid_map::Index>, bool> result = raytracer_.raytracing(*this, startIndex, endIndex);
+
         return result;
     }
 
@@ -265,6 +254,45 @@ namespace RayTracer{
             }
         }
         return clustered_frontiers;
+    }
+
+
+    void Lidar_sensor::construct_SFC(Eigen::Vector2d& pos)
+    {   
+        /**
+         * Generate obtacle vector. 
+        **/
+        std::vector<Eigen::Vector2d> obs_grid; //Obstacle points based on grid reference. 
+
+        //Set submap iterator
+        Eigen::Vector2d top_left(pos(0) - submap_length_(0)/2.0, pos(1) + submap_length_(1)/2.0); //TOp left corner of submap
+        Eigen::Vector2d bot_right(pos(0) + submap_length_(0)/2.0, pos(1) - submap_length_(1)/2.0)
+        grid_map::Position p3 = grid_map::euc_to_gridref(top_left, map_size_);
+        grid_map::Position p4 = grid_map::euc_to_gridref(bot_right, map_size_);
+
+        grid_map::Index i3; belief_map_.getIndex(p3, i3); //Find top left index
+        grid_map::Index i4; belief_map_.getIndex(p4, i4); //Find top left index
+        grid_map::Size submap_size = i4 - i3;
+
+        for(grid_map::SubmapIterator it(belief_map_, i3, submap_size); !it.isPastEnd(); ++it)
+        {
+            auto itr_set = obstacles_.find(*it);
+            if(itr_set !=obstacles_.end()){ //Current index is in obstacle set 
+                grid_map::Position obst_pos; 
+                belief_map_.getPosition(*it, obst_pos);
+                obs_grid.push_back(obst_pos);
+            }
+        }
+
+        /**
+         * Generate Vector of SFCs  
+        **/
+        for(int i=0; i<selected_fts_.size(); i++){
+            Planner::SFC sfc(belief_map_, selected_fts_.at(i));
+            sfc.generate_SFC(obs_grid);
+        }
+        
+        //Should return the pair between frontier cell & SFC block.
     }
 
 }

@@ -8,6 +8,8 @@
 #include "grid_map_core/GridMap.hpp"
 #include <decomp_util/iterative_decomp.h>
 
+typedef std::vector<std::vector<std::pair<std::vector<double>, double>>> cor_type;
+
 namespace Planner
 {
     //Get Frontier points from current (belief) grid map 

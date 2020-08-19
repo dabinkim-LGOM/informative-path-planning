@@ -4,21 +4,21 @@ using namespace std;
 
 namespace grid_map
 {
-    Eigen::Vector2d ObstacleGridConverter::euc_to_gridref(Eigen::Vector2d pos)
-    {
-        Eigen::Vector2d grid_pos;
-        grid_pos(0) = pos(1) - map_size_y_ /2.0;
-        grid_pos(1) = -1.0*pos(0) + map_size_x_ /2.0;
-        return grid_pos;
-    }
+    // Eigen::Vector2d ObstacleGridConverter::euc_to_gridref(Eigen::Vector2d pos)
+    // {
+    //     Eigen::Vector2d grid_pos;
+    //     grid_pos(0) = pos(1) - map_size_y_ /2.0;
+    //     grid_pos(1) = -1.0*pos(0) + map_size_x_ /2.0;
+    //     return grid_pos;
+    // }
 
-    Eigen::Vector2d ObstacleGridConverter::gridref_to_euc(Eigen::Vector2d pos)
-    {
-        Eigen::Vector2d euc_pos;
-        euc_pos(0) = -pos(1) + map_size_x_ /2.0;
-        euc_pos(1) = pos(0) + map_size_y_ /2.0;
-        return euc_pos;
-    }
+    // Eigen::Vector2d ObstacleGridConverter::gridref_to_euc(Eigen::Vector2d pos)
+    // {
+    //     Eigen::Vector2d euc_pos;
+    //     euc_pos(0) = -pos(1) + map_size_x_ /2.0;
+    //     euc_pos(1) = pos(0) + map_size_y_ /2.0;
+    //     return euc_pos;
+    // }
 
     grid_map::GridMap ObstacleGridConverter::GridMapConverter()
     {

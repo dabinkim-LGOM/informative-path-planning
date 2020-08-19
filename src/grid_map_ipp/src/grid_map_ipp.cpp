@@ -16,6 +16,7 @@ namespace RayTracer{
         vector<string> name;
         name.clear();
         name.push_back("base");
+        name.push_back("JPS");
         vector<string> x = name;
         grid_map::GridMap map(x);
 
@@ -41,7 +42,7 @@ namespace RayTracer{
         **/
         grid_map::Size map_size = belief_map_.getSize();
         grid_map::Position pre_transform_pos(cur_pos.x, cur_pos.y);
-        grid_map::Position start_pos = euc_to_gridref(pre_transform_pos, map_size);
+        grid_map::Position start_pos = grid_map::euc_to_gridref(pre_transform_pos, map_size);
         // cout << start_pos(0) << " " << start_pos(1) << endl;
         grid_map::Index startIndex;
         belief_map_.getIndex(start_pos, startIndex);
@@ -75,7 +76,7 @@ namespace RayTracer{
             }
 
             grid_map::Position pre_transform_pos(end_pos_x, end_pos_y);
-            grid_map::Position end_pos(euc_to_gridref(pre_transform_pos, map_size));
+            grid_map::Position end_pos(grid_map::euc_to_gridref(pre_transform_pos, map_size));
             pair< vector<grid_map::Index>, bool> idx = gen_single_ray(start_pos, end_pos); //Return free voxel index & true: Occupied voxel
                                                                                            //                          false: no Occupied voxel
 
@@ -294,8 +295,12 @@ namespace RayTracer{
         /**
          * Generate Vector of SFCs  
         **/
+        grid_map::Index cur_index; 
+        belief_map_.getIndex(pos, cur_index);
+        grid_map::Index frontier_index; 
         for(int i=0; i<selected_fts_.size(); i++){
-            Planner::SFC sfc(belief_map_, selected_fts_.at(i));
+            belief_map_.getIndex(selected_fts_.at(i), frontier_index);
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
             sfc.generate_SFC(obs_grid);
             cor_type cur_sfc = sfc.get_corridor();
             std::pair<cor_type, Eigen::Vector2d> sfc_ft_pair = make_pair(cur_sfc, selected_fts_.at(i));

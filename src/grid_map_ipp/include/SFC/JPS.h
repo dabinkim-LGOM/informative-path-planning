@@ -6,15 +6,20 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <grid_map_core/GridMap.hpp>
+
+grid_map::Index idx_default(0,0);
 
 namespace Planner{
     class Node {
 // Variables used here are constantly accessed and checked; leaving public for now.
     public:
-        /** \brief x coordinate */
-        int x_;
-        /** \brief y coordinate */
-        int y_;
+        // /** \brief x coordinate */
+        // int x_;
+        // /** \brief y coordinate */
+        // int y_;
+        grid_map::Index idx_;
+
         /** \brief Node id */
         int id_;
         /** \brief Node's parent's id */
@@ -33,9 +38,8 @@ namespace Planner{
         * @param id Node's id
         * @param pid Node's parent's id
         */
-        Node(int x = 0, int y = 0, double cost = 0, double h_cost = 0, int id = 0, int pid = 0) {
-            this->x_ = x;
-            this->y_ = y;
+        Node(grid_map::Index idx = idx_default, double cost = 0, double h_cost = 0, int id = 0, int pid = 0) {
+            this->idx_ = idx;
             this->cost_ = cost;
             this->h_cost_ = h_cost;
             this->id_ = id;
@@ -49,8 +53,8 @@ namespace Planner{
         void PrintStatus() {
             std::cout << "--------------" << std::endl
                       << "Node          :" << std::endl
-                      << "x             : " << x_ << std::endl
-                      << "y             : " << y_ << std::endl
+                      << "Index_x       : " << idx_(1,0) << std::endl
+                      << "Index_y       : " << idx_(0,0) << std::endl
                       << "Cost          : " << cost_ << std::endl
                       << "Heuristic cost: " << h_cost_ << std::endl
                       << "Id            : " << id_ << std::endl
@@ -65,8 +69,7 @@ namespace Planner{
         */
         Node operator+(Node p) {
             Node tmp;
-            tmp.x_ = this->x_ + p.x_;
-            tmp.y_ = this->y_ + p.y_;
+            tmp.idx_ = this->idx_ + p.idx_;
             tmp.cost_ = this->cost_ + p.cost_;
             return tmp;
         }
@@ -78,8 +81,7 @@ namespace Planner{
         */
         Node operator-(Node p) {
             Node tmp;
-            tmp.x_ = this->x_ - p.x_;
-            tmp.y_ = this->y_ - p.y_;
+            tmp.idx_ = this->idx_ - p.idx_;
             return tmp;
         }
 
@@ -89,8 +91,7 @@ namespace Planner{
         * @return void
         */
         void operator=(Node p) {
-            this->x_ = p.x_;
-            this->y_ = p.y_;
+            this->idx_ = p.idx_;
             this->cost_ = p.cost_;
             this->h_cost_ = p.h_cost_;
             this->id_ = p.id_;
@@ -103,7 +104,7 @@ namespace Planner{
         * @return bool whether current node equals input node
         */
         bool operator==(Node p) {
-            if (this->x_ == p.x_ && this->y_ == p.y_) return true;
+            if (this->idx_(0,0) == p.idx_(0,0) && this->idx_(1,0) == p.idx_(1,0)) return true;
             return false;
         }
 
@@ -113,7 +114,7 @@ namespace Planner{
         * @return bool whether current node is not equal to input node
         */
         bool operator!=(Node p) {
-            if (this->x_ != p.x_ || this->y_ != p.y_) return true;
+            if (this->idx_(0,0) != p.idx_(0,0) && this->idx_(1,0) != p.idx_(1,0)) return true;
             return false;
         }
     };
@@ -138,10 +139,12 @@ namespace Planner{
     };
 
     std::vector<Node> GetMotion() {
-        Node down(0, 1, 1, 0, 0, 0);
-        Node up(0, -1, 1, 0, 0, 0);
-        Node left(-1, 0, 1, 0, 0, 0);
-        Node right(1, 0, 1, 0, 0, 0);
+        grid_map::Index down_idx(0,1); grid_map::Index up_idx(0,-1); grid_map::Index left_idx(-1,0); grid_map::Index right_idx(1,0);
+
+        Node down(down_idx, 1, 0, 0, 0);
+        Node up(up_idx, 1, 0, 0, 0);
+        Node left(left_idx, 1, 0, 0, 0);
+        Node right(right_idx, 1, 0, 0, 0);
         std::vector<Node> v;
         v.push_back(down);
         v.push_back(up);
@@ -157,7 +160,7 @@ namespace Planner{
     class JumpPointSearch{
         private:
         std::priority_queue<Node, std::vector<Node>, compare_cost> open_list_;
-        std::vector<std::vector<int>> grid;
+        grid_map::GridMap grid;
         std::map<int, Node> closed_list_;
         std::vector<Node> skeleton_path_;
         std::unordered_set<int> pruned;
@@ -165,7 +168,7 @@ namespace Planner{
         int dimx, dimy;
 
         public:
-        std::vector<Node> jump_point_search(std::vector<std::vector<int>> &grid, Node start_in, Node goal_in);
+        std::vector<Node> jump_point_search(grid_map::GridMap &grid, Node start_in, Node goal_in);
 
         void InsertionSort(std::vector<Node> &v);
 

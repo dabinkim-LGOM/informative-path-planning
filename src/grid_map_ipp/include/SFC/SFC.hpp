@@ -20,19 +20,22 @@ namespace Planner
             
         private:
             // RayTracer::Lidar_sensor lidar_; 
+            grid_map::Index cur_index_;
             grid_map::GridMap belief_map_;
             //Frontier cell is in vector of Indices
-            Eigen::Vector2d goal_frontier_; // Frontier cell that we want to generate SFC 
+            grid_map::Index goal_frontier_; // Frontier cell that we want to generate SFC 
             cor_type Corridor_;
 
         public:
-            SFC(grid_map::GridMap& map, Eigen::Vector2d& goal_frontier): belief_map_(map), goal_frontier_(goal_frontier)
+            SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index): belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index)
             {}
-            void generate_SFC(std::vector<Eigen::Vector2d>& obs);
+            vec_E<Polyhedron<2>> generate_SFC(std::vector<Eigen::Vector2d>& obs);
             cor_type get_corridor()
             {
                 return Corridor_;
             }
+
+            void visualize_SFC(vec_E<Polyhedron<2>>& SFC);
     };
 }
 

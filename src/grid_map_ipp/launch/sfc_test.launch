@@ -2,8 +2,8 @@
 
 <launch>
     <node name="test_SFC" pkg="grid_map_ipp" type="test_SFC" output="screen">
-        <param name="x_idx" value="51"/>
-        <param name="y_idx" value="50"/> 
+        <param name="x_idx" value="60"/>
+        <param name="y_idx" value="60"/> 
     </node>
 
     <node name="rviz" pkg="rviz" type ="rviz" output="screen"/>

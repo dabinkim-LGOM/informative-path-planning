@@ -24,7 +24,7 @@ namespace grid_map
     {
         vector<string> name;
         name.push_back("base");
-        name.push_back("JPS");
+        // name.push_back("SFC");
 
         grid_map::GridMap gt_map(name);
         gt_map.setFrameId("map");
@@ -33,7 +33,7 @@ namespace grid_map
         grid_map::Size size_; size_ = gt_map.getSize();
         gt_map.setGeometry(Length(map_size_y_, map_size_x_), 1.00);
         gt_map.add("base", 0.0); //Set all values to zero.
-        gt_map.add("JPS", 0.0); //Set all values to zero.
+        // gt_map.add("SFC", 0.0); //Set all values to zero.
         
         double buffer = 1.0;
         for (GridMapIterator it(gt_map); !it.isPastEnd(); ++it){
@@ -58,7 +58,7 @@ namespace grid_map
             }
             if(is_obs){
                 gt_map.at("base", *it) = 1.0; //Obstacle
-                gt_map.at("JPS", *it) = 1.0; //Obstacle
+                // gt_map.at("SFC", *it) = 1.0; //Obstacle
 
             }
         }

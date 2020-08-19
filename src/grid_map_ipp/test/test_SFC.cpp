@@ -114,7 +114,7 @@ int main(int argc, char** argv)
         for(int j=0; j<50; j++){
             grid_map::Index idx(i,j);
             gt_map.at("base", idx) = 0.5;
-            gt_map.at("SFC", idx) = 0.5;
+            // gt_map.at("SFC", idx) = 0.5;
         }
     }
 
@@ -133,10 +133,11 @@ int main(int argc, char** argv)
     nh.param("x_idx", x_idx, 50);
     nh.param("y_idx", y_idx, 50);
 
-    grid_map::Index idx(51,50);
+    grid_map::Index idx(x_idx, y_idx);
     vector<vector<grid_map::Index> > frontier_vec = ft.wfd(gt_map, idx);
     grid_map::Position cur_pos; 
-    gt_map.getPosition(idx, cur_pos);
+    grid_map::Position grid_cur_pos; 
+    gt_map.getPosition(idx, cur_pos); grid_cur_pos = cur_pos;
     cur_pos(0,0) = cur_pos(0,0) + 50.0; 
     cur_pos(1,0) = cur_pos(1,0) + 50.0; 
     
@@ -145,15 +146,22 @@ int main(int argc, char** argv)
     std::vector<std::vector<Eigen::Vector2d> > clustered_frontiers = lidar.frontier_clustering(frontier_pos);
 
 
+    //SFC Start 
+    cout << "SFC start" << endl; 
     grid_map::Size size_; size_ = gt_map.getSize();
     vector<Eigen::Vector2d> selected_ft; 
     selected_ft.push_back(frontier_pos.front());
     selected_ft.push_back(frontier_pos.back());
     lidar.set_selected_frontier(selected_ft);
-    lidar.construct_SFC(cur_pos);
+    cout << "CHECKPOINT 0" << endl; 
+    
+    lidar.construct_SFC(grid_cur_pos);
 
+    cout << "CHECKPOINT 1" << endl; 
     std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> corridor_pair = lidar.get_SFC();
-    std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(cur_pos);
+    cout << "CHECKPOINT 2" << endl;
+    std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(grid_cur_pos);
+    cout << "CHECKPOINT 3" << endl; 
     
     int num_t = 0;
     std::vector<visualization_msgs::Marker> jps_marker_vec; 
@@ -167,6 +175,7 @@ int main(int argc, char** argv)
         }
     }
 
+    //SFC End 
 
     std::random_device rd;
 

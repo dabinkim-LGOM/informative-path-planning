@@ -1,6 +1,6 @@
 #include <SFC/SFC.hpp>
 
-
+using namespace std;
 //Obstacle vector is given with respect to the grid reference frame. 
 vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& obs_grid)
 {
@@ -9,12 +9,15 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& ob
     //Get solution from JPS;  --> JPS on Index of each grid. 
     //sol = jps.jump_point_search();
     //
-    
+    cout << "Before JPS" << endl; 
     std::vector<Planner::Node> jps_result; 
+    cout << "Cur Index: " << cur_index_(0,0) << ", " << cur_index_(1,0) << endl; 
+    cout << "Frontier Goal Index: " << goal_frontier_(0,0) << ", " << goal_frontier_(1,0) << endl; 
+    
     Planner::Node start_node(cur_index_, 0.0, 0.0, 0, 0); 
     Planner::Node goal_node(goal_frontier_, 0.0, 0.0, 0, 0);
     jps_result = jps.jump_point_search(belief_map_, start_node, goal_node);
-    
+    cout << "After JPS" << endl; 
     //Reconstruct path from grid index to grid-ref double values. 
     vec_Vec2f recon_jps_path; 
     grid_map::Position pos;

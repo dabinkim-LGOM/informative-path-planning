@@ -95,10 +95,12 @@ void Planner::JumpPointSearch::backtracking(const Node &last_point) {
     Node current = last_point;
     while (current.id_ != current.pid_) {
         skeleton_path_.emplace_back(current);
+        std::cout <<"Never finish?" <<std::endl;
         current = closed_list_.find(current.pid_)->second;
     }
     skeleton_path_.emplace_back(current);
     std::reverse(skeleton_path_.begin(), skeleton_path_.end());
+
 }
 
 void Planner::JumpPointSearch::InsertionSort(std::vector<Node>& v){

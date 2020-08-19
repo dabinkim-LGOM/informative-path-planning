@@ -130,9 +130,10 @@ int main(int argc, char** argv)
     RayTracer::Lidar_sensor lidar(range_max, range_min, hangle_max, hangle_min, angle_resol, 100.0, 100.0, resol, raytracer);
 
     int x_idx; int y_idx;
-    nh.param("x_idx", x_idx, 50);
-    nh.param("y_idx", y_idx, 50);
-
+    nh.param<int>("x_idx", x_idx, 60);
+    nh.param<int>("y_idx", y_idx, 60);
+    cout << x_idx << ", " << y_idx << endl; 
+    
     grid_map::Index idx(x_idx, y_idx);
     vector<vector<grid_map::Index> > frontier_vec = ft.wfd(gt_map, idx);
     grid_map::Position cur_pos; 
@@ -155,7 +156,7 @@ int main(int argc, char** argv)
     lidar.set_selected_frontier(selected_ft);
     cout << "CHECKPOINT 0" << endl; 
     
-    lidar.construct_SFC(grid_cur_pos);
+    lidar.construct_SFC(cur_pos);
 
     cout << "CHECKPOINT 1" << endl; 
     std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> corridor_pair = lidar.get_SFC();

@@ -69,6 +69,30 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& ob
     return SFC; 
 }
 
+//Grid reference frame
+std::vector<Eigen::Vector2d> Planner::SFC::JPS_Path()
+{
+    Planner::JumpPointSearch jps;
+    //Map fit to JPS form. 
+    //Get solution from JPS;  --> JPS on Index of each grid. 
+    //sol = jps.jump_point_search();
+    //
+    
+    std::vector<Planner::Node> jps_result; 
+    Planner::Node start_node(cur_index_, 0.0, 0.0, 0, 0); 
+    Planner::Node goal_node(goal_frontier_, 0.0, 0.0, 0, 0);
+    jps_result = jps.jump_point_search(belief_map_, start_node, goal_node);
+    
+    std::vector<Eigen::Vector2d> eigen_result;
+    for(int i=0; i< jps_result.size(); i++){
+        Eigen::Vector2d pos; 
+        grid_map::Index idx = jps_result.at(i).idx_;
+        belief_map_.getPosition(idx, pos);
+        eigen_result.push_back(pos);
+    }
+
+    return eigen_result; 
+}
 
 void Planner::SFC::visualize_SFC(vec_E<Polyhedron<2>>& SFC)
 {

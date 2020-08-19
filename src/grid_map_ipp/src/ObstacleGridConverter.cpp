@@ -24,6 +24,7 @@ namespace grid_map
     {
         vector<string> name;
         name.push_back("base");
+        name.push_back("JPS");
 
         grid_map::GridMap gt_map(name);
         gt_map.setFrameId("map");
@@ -32,7 +33,8 @@ namespace grid_map
         grid_map::Size size_; size_ = gt_map.getSize();
         gt_map.setGeometry(Length(map_size_y_, map_size_x_), 1.00);
         gt_map.add("base", 0.0); //Set all values to zero.
-
+        gt_map.add("JPS", 0.0); //Set all values to zero.
+        
         double buffer = 1.0;
         for (GridMapIterator it(gt_map); !it.isPastEnd(); ++it){
             Position position;
@@ -56,6 +58,8 @@ namespace grid_map
             }
             if(is_obs){
                 gt_map.at("base", *it) = 1.0; //Obstacle
+                gt_map.at("JPS", *it) = 1.0; //Obstacle
+
             }
         }
         return gt_map;
@@ -72,9 +76,7 @@ namespace grid_map
     nav_msgs::OccupancyGrid ObstacleGridConverter::OccupancyGridConverter(grid_map::GridMap& gd_map)
     {
         nav_msgs::OccupancyGrid occ_grid;
-        cout << "HERE?" << endl;
         GridMapRosConverter::toOccupancyGrid(gd_map, "base", 0.0, 1.0, occ_grid);
-        cout << "HERE?2" << endl;
         return occ_grid;
     }
 }

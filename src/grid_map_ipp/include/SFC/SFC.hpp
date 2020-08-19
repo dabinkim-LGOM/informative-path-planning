@@ -30,11 +30,13 @@ namespace Planner
         public:
             SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index): belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index)
             {}
+
             vec_E<Polyhedron<2>> generate_SFC(std::vector<Eigen::Vector2d>& obs);
             vec_E<Polyhedron<2>> get_corridor()
             {
                 return Corridor_;
             }
+            std::vector<Eigen::Vector2d> JPS_Path();
 
             void visualize_SFC(vec_E<Polyhedron<2>>& SFC);
     };

@@ -303,10 +303,30 @@ namespace RayTracer{
             Planner::SFC sfc(belief_map_, frontier_index, cur_index);
             sfc.generate_SFC(obs_grid);
             vec_E<Polyhedron<2>> cur_sfc = sfc.get_corridor();
-            std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> sfc_ft_pair = make_pair(cur_sfc, selected_fts_.at(i));
+            sfc_ft_pair_ = make_pair(cur_sfc, selected_fts_.at(i));
         }
         
         //Should return the pair between frontier cell & SFC block.
     }
 
+
+    vector<vector<Eigen::Vector2d> > Lidar_sensor::get_JPS_Path(Eigen::Vector2d& pos)
+    {   
+        /**
+         * Generate Vector of SFCs  
+        **/
+       vector<vector<Eigen::Vector2d> > total_path; 
+        grid_map::Index cur_index; 
+        belief_map_.getIndex(pos, cur_index);
+        grid_map::Index frontier_index; 
+        for(int i=0; i<selected_fts_.size(); i++){
+            belief_map_.getIndex(selected_fts_.at(i), frontier_index);
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
+            std::vector<Eigen::Vector2d> path;
+            path = sfc.JPS_Path();
+            total_path.push_back(path);
+        }
+        return total_path;         
+        //Should return the pair between frontier cell & SFC block.
+    }
 }

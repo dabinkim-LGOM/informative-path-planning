@@ -2,6 +2,7 @@
 #include <grid_map_ipp/grid_map_sdf.hpp>
 #include <Eigen/Dense>
 #include <grid_map_ipp/util.hpp>
+#include <SFC/SFC.hpp>
 #include <algorithm>
 using namespace std;
 
@@ -257,6 +258,11 @@ namespace RayTracer{
     }
 
 
+    /**
+     * @brief Generate vector of SFCs with respect to given selected frontier vectors. 
+     * 
+     * @param pos 
+     */
     void Lidar_sensor::construct_SFC(Eigen::Vector2d& pos)
     {   
         /**
@@ -265,8 +271,8 @@ namespace RayTracer{
         std::vector<Eigen::Vector2d> obs_grid; //Obstacle points based on grid reference. 
 
         //Set submap iterator
-        Eigen::Vector2d top_left(pos(0) - submap_length_(0)/2.0, pos(1) + submap_length_(1)/2.0); //TOp left corner of submap
-        Eigen::Vector2d bot_right(pos(0) + submap_length_(0)/2.0, pos(1) - submap_length_(1)/2.0)
+        Eigen::Vector2d top_left(pos(0,0) - (submap_length_(0,0)/2.0), pos(1,0) + submap_length_(1,0)/2.0); //TOp left corner of submap
+        Eigen::Vector2d bot_right(pos(0,0) + submap_length_(0,0)/2.0, pos(1,0) - submap_length_(1,0)/2.0);
         grid_map::Position p3 = grid_map::euc_to_gridref(top_left, map_size_);
         grid_map::Position p4 = grid_map::euc_to_gridref(bot_right, map_size_);
 
@@ -274,9 +280,10 @@ namespace RayTracer{
         grid_map::Index i4; belief_map_.getIndex(p4, i4); //Find top left index
         grid_map::Size submap_size = i4 - i3;
 
+    
         for(grid_map::SubmapIterator it(belief_map_, i3, submap_size); !it.isPastEnd(); ++it)
         {
-            auto itr_set = obstacles_.find(*it);
+            auto itr_set = obstacles_.find(*it); //Find current index in obstacle unordered set. 
             if(itr_set !=obstacles_.end()){ //Current index is in obstacle set 
                 grid_map::Position obst_pos; 
                 belief_map_.getPosition(*it, obst_pos);
@@ -290,6 +297,8 @@ namespace RayTracer{
         for(int i=0; i<selected_fts_.size(); i++){
             Planner::SFC sfc(belief_map_, selected_fts_.at(i));
             sfc.generate_SFC(obs_grid);
+            cor_type cur_sfc = sfc.get_corridor();
+            std::pair<cor_type, Eigen::Vector2d> sfc_ft_pair = make_pair(cur_sfc, selected_fts_.at(i));
         }
         
         //Should return the pair between frontier cell & SFC block.

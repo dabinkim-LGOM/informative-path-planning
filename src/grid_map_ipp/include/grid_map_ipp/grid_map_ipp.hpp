@@ -72,7 +72,7 @@ namespace RayTracer{
             vector<Eigen::Vector2d> selected_fts_;
             
             std::unordered_set<grid_map::Index> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
-            Eigen::Vector2d submap_length_(20.0, 20.0); //Submap length for local path optimization 
+            Eigen::Vector2d submap_length_; //Submap length for local path optimization 
 
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
@@ -81,6 +81,8 @@ namespace RayTracer{
              {
                  belief_map_ = init_belief_map();
                  map_size_ = belief_map_.getSize();
+                 obstacles_.clear();
+                 submap_length_ << 20.0, 20.0;
              }
 
             ~Lidar_sensor() {}

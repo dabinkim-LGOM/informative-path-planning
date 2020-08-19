@@ -1,5 +1,5 @@
 #include <SFC/SFC.hpp>
-#include <SFC/JPS.h>
+
 
 //Obstacle vector is given with respect to the grid reference frame. 
 vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& obs_grid)
@@ -65,7 +65,7 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& ob
     decomp.dilate_iter(recon_jps_path, 5, 0.3, 0.0);
     
     vec_E<Polyhedron<2>> SFC = decomp.get_polyhedrons();
-
+    Corridor_ = SFC; 
     return SFC; 
 }
 

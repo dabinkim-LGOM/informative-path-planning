@@ -5,6 +5,7 @@
 #include "grid_map_core/GridMap.hpp"
 #include "grid_map_ros/grid_map_ros.hpp"
 #include <grid_map_msgs/GridMap.h>
+#include <grid_map_ipp/util.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <list>
 #include <vector>
@@ -30,8 +31,8 @@ namespace grid_map
             grid_map::GridMap GridMapConverter(); 
             nav_msgs::OccupancyGrid OccupancyGridConverter();
             nav_msgs::OccupancyGrid OccupancyGridConverter(grid_map::GridMap& gd_map); //Convert given grid_map
-            Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
-            Eigen::Vector2d gridref_to_euc(Eigen::Vector2d pos);
+            // Eigen::Vector2d euc_to_gridref(Eigen::Vector2d pos);
+            // Eigen::Vector2d gridref_to_euc(Eigen::Vector2d pos);
 
 
     };

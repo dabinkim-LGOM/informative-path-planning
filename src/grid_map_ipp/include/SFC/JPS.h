@@ -8,7 +8,6 @@
 #include <map>
 #include <grid_map_core/GridMap.hpp>
 
-grid_map::Index idx_default(0,0);
 
 namespace Planner{
     class Node {
@@ -38,7 +37,15 @@ namespace Planner{
         * @param id Node's id
         * @param pid Node's parent's id
         */
-        Node(grid_map::Index idx = idx_default, double cost = 0, double h_cost = 0, int id = 0, int pid = 0) {
+       Node(){
+           Eigen::Array2i in(0,0);
+           this->idx_ = in;
+           this->cost_ = 0.0;
+           this->h_cost_ = 0.0;
+           this->id_ = 0;
+           this->pid_ = 0;
+       }
+        Node(grid_map::Index idx, double cost, double h_cost, int id, int pid) {
             this->idx_ = idx;
             this->cost_ = cost;
             this->h_cost_ = h_cost;
@@ -50,17 +57,7 @@ namespace Planner{
         * @brief Prints the values of the variables in the node
         * @return void
         */
-        void PrintStatus() {
-            std::cout << "--------------" << std::endl
-                      << "Node          :" << std::endl
-                      << "Index_x       : " << idx_(1,0) << std::endl
-                      << "Index_y       : " << idx_(0,0) << std::endl
-                      << "Cost          : " << cost_ << std::endl
-                      << "Heuristic cost: " << h_cost_ << std::endl
-                      << "Id            : " << id_ << std::endl
-                      << "Pid           : " << pid_ << std::endl
-                      << "--------------" << std::endl;
-        }
+        void PrintStatus(void);
 
         /**
         * @brief Overloading operator + for Node class
@@ -138,24 +135,7 @@ namespace Planner{
         }
     };
 
-    std::vector<Node> GetMotion() {
-        grid_map::Index down_idx(0,1); grid_map::Index up_idx(0,-1); grid_map::Index left_idx(-1,0); grid_map::Index right_idx(1,0);
-
-        Node down(down_idx, 1, 0, 0, 0);
-        Node up(up_idx, 1, 0, 0, 0);
-        Node left(left_idx, 1, 0, 0, 0);
-        Node right(right_idx, 1, 0, 0, 0);
-        std::vector<Node> v;
-        v.push_back(down);
-        v.push_back(up);
-        v.push_back(left);
-        v.push_back(right);
-        // NOTE: Add diagonal movements for A* and D* only after the heuristics in the
-        // algorithms have been modified. Refer to README.md. The heuristics currently
-        // implemented are based on Manhattan distance and dwill not account for
-        //diagonal/ any other motions
-        return v;
-    }
+    std::vector<Node> GetMotion(void);
 
     class JumpPointSearch{
         private:
@@ -180,3 +160,5 @@ namespace Planner{
 
     };
 }
+
+#endif

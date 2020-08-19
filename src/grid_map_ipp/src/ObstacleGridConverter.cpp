@@ -29,7 +29,7 @@ namespace grid_map
         gt_map.setFrameId("map");
         // cout << map_size_x_ << endl;
         // cout << map_size_y_ << endl;
-        
+        grid_map::Size size_; size_ = gt_map.getSize();
         gt_map.setGeometry(Length(map_size_y_, map_size_x_), 1.00);
         gt_map.add("base", 0.0); //Set all values to zero.
 
@@ -41,7 +41,7 @@ namespace grid_map
             Eigen::Vector2d gridref_pos(position.x(), position.y());
             // double x = position.x() + map_size_x_/2.0; 
             // double y = position.y() + map_size_y_/2.0;
-            Eigen::Vector2d euc_pos = gridref_to_euc(gridref_pos);
+            Eigen::Vector2d euc_pos = grid_to_eucref(gridref_pos, size_);
             double x = euc_pos(0);  double y = euc_pos(1);
             bool is_obs = false;
 

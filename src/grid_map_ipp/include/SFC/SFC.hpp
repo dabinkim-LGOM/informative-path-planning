@@ -4,9 +4,10 @@
  * Generate SFC based on JPC. 
  * **/
 
-#include <grid_map_ipp/grid_map_ipp.hpp>
+// #include <grid_map_ipp/grid_map_ipp.hpp>
 #include "grid_map_core/GridMap.hpp"
 #include <decomp_util/iterative_decomp.h>
+#include <SFC/JPS.h>
 
 typedef std::vector<std::vector<std::pair<std::vector<double>, double>>> cor_type;
 
@@ -24,13 +25,13 @@ namespace Planner
             grid_map::GridMap belief_map_;
             //Frontier cell is in vector of Indices
             grid_map::Index goal_frontier_; // Frontier cell that we want to generate SFC 
-            cor_type Corridor_;
+            vec_E<Polyhedron<2>> Corridor_;
 
         public:
             SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index): belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index)
             {}
             vec_E<Polyhedron<2>> generate_SFC(std::vector<Eigen::Vector2d>& obs);
-            cor_type get_corridor()
+            vec_E<Polyhedron<2>> get_corridor()
             {
                 return Corridor_;
             }

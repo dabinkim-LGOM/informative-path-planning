@@ -1,9 +1,6 @@
 #include <grid_map_ipp/grid_map_ipp.hpp>
 #include <grid_map_ipp/grid_map_sdf.hpp>
-#include <Eigen/Dense>
-#include <grid_map_ipp/util.hpp>
-#include <SFC/SFC.hpp>
-#include <algorithm>
+
 using namespace std;
 
 namespace RayTracer{
@@ -83,8 +80,9 @@ namespace RayTracer{
             if(idx.second){
                 lidar_free_vec.insert(lidar_free_vec.end(), idx.first.begin(), --idx.first.end()); //Concatenate two vectors
                 lidar_collision_vec.push_back(idx.first.back());
-
-                obstacles_.insert(idx.first.back()); //Insert Obstacle Index into unordered_map 
+                auto index = idx.first.back();
+                int int_idx = map_size_x_*index(0,0) + index(1,0);
+                obstacles_.insert(int_idx); //Insert Obstacle Index into unordered_map 
             }
             else{
                 lidar_free_vec.insert(lidar_free_vec.end(), idx.first.begin(), idx.first.end()); //Concatenate two vectors
@@ -283,8 +281,10 @@ namespace RayTracer{
 
     
         for(grid_map::SubmapIterator it(belief_map_, i3, submap_size); !it.isPastEnd(); ++it)
-        {
-            auto itr_set = obstacles_.find(*it); //Find current index in obstacle unordered set. 
+        {   
+            auto index = *it; 
+            int int_idx = map_size_x_*index(0,0) + index(1,0);
+            auto itr_set = obstacles_.find(int_idx); //Find current index in obstacle unordered set. 
             if(itr_set !=obstacles_.end()){ //Current index is in obstacle set 
                 grid_map::Position obst_pos; 
                 belief_map_.getPosition(*it, obst_pos);
@@ -302,8 +302,8 @@ namespace RayTracer{
             belief_map_.getIndex(selected_fts_.at(i), frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index);
             sfc.generate_SFC(obs_grid);
-            cor_type cur_sfc = sfc.get_corridor();
-            std::pair<cor_type, Eigen::Vector2d> sfc_ft_pair = make_pair(cur_sfc, selected_fts_.at(i));
+            vec_E<Polyhedron<2>> cur_sfc = sfc.get_corridor();
+            std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> sfc_ft_pair = make_pair(cur_sfc, selected_fts_.at(i));
         }
         
         //Should return the pair between frontier cell & SFC block.

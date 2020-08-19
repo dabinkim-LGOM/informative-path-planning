@@ -1,10 +1,12 @@
 #ifndef GRIDMAPIPP
 #define GRIDMAPIPP
 
-#include "grid_map_core/GridMap.hpp"
+// #include "grid_map_core/GridMap.hpp"
 #include "grid_map_core/iterators/iterators.hpp"
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
 #include "grid_map_ipp/wavefront_frontier_detection.hpp"
+// #include "grid_map_ipp/util.hpp"
+#include <algorithm>
 #include "SFC/SFC.hpp"
 #include <Eigen/Dense>
 #include <vector>
@@ -71,9 +73,10 @@ namespace RayTracer{
             double ft_cluster_r_ = 5.0;
             vector<Eigen::Vector2d> selected_fts_;
             
-            std::unordered_set<grid_map::Index> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
+            std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
             Eigen::Vector2d submap_length_; //Submap length for local path optimization 
 
+            // grid_map::UTIL util;
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
              : range_max_(range_max), range_min_(range_min), hangle_max_(hangle_max), hangle_min_(hangle_min), angle_resol_(angle_resol), map_size_x_(map_size_x), map_size_y_(map_size_y)
@@ -96,8 +99,8 @@ namespace RayTracer{
             
             double get_occ_value(double x, double y)
             {
-                Eigen::Vector2d pos_euc(x,y);
-                Eigen::Vector2d pos_grid = euc_to_gridref(pos_euc);
+                Eigen::Vector2d pos_euc(x,y); 
+                Eigen::Vector2d pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
                 grid_map::Position pos(pos_grid(0), pos_grid(1));
                 // pos << x, y;
                 grid_map::Index idx;
@@ -114,7 +117,7 @@ namespace RayTracer{
                 grid_map::GridMap map = belief_map_.getSubmap(pos, length, isSuccess);
                 return map;
             }
-            std::unordered_map<grid_map::Index> get_obstacles(){
+            std::unordered_set<int> get_obstacles(){
                 return obstacles_;
             }
 

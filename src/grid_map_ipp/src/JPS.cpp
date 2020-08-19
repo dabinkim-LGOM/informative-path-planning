@@ -1,5 +1,37 @@
 #include <SFC/JPS.h>
 
+void Planner::Node::PrintStatus() {
+    std::cout << "--------------" << std::endl
+                << "Node          :" << std::endl
+                << "Index_x       : " << idx_(1,0) << std::endl
+                << "Index_y       : " << idx_(0,0) << std::endl
+                << "Cost          : " << cost_ << std::endl
+                << "Heuristic cost: " << h_cost_ << std::endl
+                << "Id            : " << id_ << std::endl
+                << "Pid           : " << pid_ << std::endl
+                << "--------------" << std::endl;
+}
+
+
+std::vector<Planner::Node> Planner::GetMotion() {
+    grid_map::Index down_idx(0,1); grid_map::Index up_idx(0,-1); grid_map::Index left_idx(-1,0); grid_map::Index right_idx(1,0);
+
+    Planner::Node down(down_idx, 1, 0, 0, 0);
+    Planner::Node up(up_idx, 1, 0, 0, 0);
+    Planner::Node left(left_idx, 1, 0, 0, 0);
+    Planner::Node right(right_idx, 1, 0, 0, 0);
+    std::vector<Planner::Node> v;
+    v.push_back(down);
+    v.push_back(up);
+    v.push_back(left);
+    v.push_back(right);
+    // NOTE: Add diagonal movements for A* and D* only after the heuristics in the
+    // algorithms have been modified. Refer to README.md. The heuristics currently
+    // implemented are based on Manhattan distance and dwill not account for
+    //diagonal/ any other motions
+    return v;
+}
+
 
 Planner::Node Planner::JumpPointSearch::jump(Node &new_point, Node &motion, int id) {
     Node next_point = new_point + motion;

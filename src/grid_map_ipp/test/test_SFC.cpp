@@ -4,6 +4,8 @@
 #include <grid_map_ipp/wavefront_frontier_detection.hpp>
 #include <grid_map_ipp/ObstacleGridConverter.hpp>
 #include <grid_map_ipp/grid_map_ipp.hpp>
+#include <decomp_ros_utils/data_ros_utils.h>
+// #include <decomp_ros_utils/polyhedron_array_display.h>
 // #include <grid_map_ipp/util.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/Marker.h>
@@ -152,6 +154,7 @@ int main(int argc, char** argv)
     grid_map::Size size_; size_ = gt_map.getSize();
     vector<Eigen::Vector2d> selected_ft; 
     selected_ft.push_back(frontier_pos.front());
+    selected_ft.push_back(frontier_pos.at(5));
     selected_ft.push_back(frontier_pos.back());
     lidar.set_selected_frontier(selected_ft);
     cout << "CHECKPOINT 0" << endl; 
@@ -159,7 +162,7 @@ int main(int argc, char** argv)
     lidar.construct_SFC(cur_pos);
 
     cout << "CHECKPOINT 1" << endl; 
-    std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> corridor_pair = lidar.get_SFC();
+    std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > corridor_pair_vec = lidar.get_SFC();
     cout << "CHECKPOINT 2" << endl;
     std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(grid_cur_pos);
     cout << "CHECKPOINT 3" << endl; 
@@ -212,9 +215,36 @@ int main(int argc, char** argv)
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 1, true);
     ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
     ros::Publisher pub_vis_jps = nh.advertise<visualization_msgs::Marker>("jps", 100, true);
+
+    ros::Publisher es_pub = nh.advertise<decomp_ros_msgs::EllipsoidArray>("ellipsoid_array", 1, true);
+    ros::Publisher poly_pub = nh.advertise<decomp_ros_msgs::PolyhedronArray>("polyhedron_array", 1, true);
     grid_map::Size size = gt_map.getSize();
 
 
+    // decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(corridor_pair.first);
+    // poly_msg.header.frame_id = "map";
+    
+    
+    for(size_t j = 0; j < jps_path.size(); j++) {
+        for(size_t i=0; i<jps_path.at(j).size() -1; i++){
+            const auto pt_inside = ((jps_path.at(j))[i] + (jps_path.at(j))[i+1]) / 2;
+            LinearConstraint2D cs(pt_inside, ((corridor_pair_vec.at(j)).first)[i].hyperplanes());
+            printf("i: %zu\n", i);
+            std::cout << "A: " << cs.A() << std::endl;
+            std::cout << "b: " << cs.b() << std::endl;
+
+            std::cout << "point: " << (jps_path.at(j))[i].transpose();
+            if(cs.inside((jps_path.at(j))[i]))
+            std::cout << " is inside!" << std::endl;
+            else
+            std::cout << " is outside!" << std::endl;
+            std::cout << "point: " << (jps_path.at(j))[i+1].transpose();
+            if(cs.inside((jps_path.at(j))[i+1]))
+            std::cout << " is inside!" << std::endl;
+            else
+            std::cout << " is outside!" << std::endl;
+        }
+    }
 
     while(nh.ok())
     {
@@ -233,6 +263,8 @@ int main(int argc, char** argv)
         for(int i=0; i<jps_marker_vec.size(); i++){
             pub_vis_jps.publish(jps_marker_vec.at(i));
         }
+
+        // poly_pub.publish(poly_msg);
         rate.sleep();    
     }
 

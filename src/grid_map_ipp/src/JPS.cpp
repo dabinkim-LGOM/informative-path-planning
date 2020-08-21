@@ -90,18 +90,21 @@ bool Planner::JumpPointSearch::has_forced_neighbours(Node &new_point, Node &next
     return false;
 }
 
-void Planner::JumpPointSearch::backtracking(const Node &last_point) {
-    skeleton_path_.clear();
-    Node current = last_point;
-    while (current.id_ != current.pid_) {
-        skeleton_path_.emplace_back(current);
-        std::cout <<"Never finish?" <<std::endl;
-        current = closed_list_.find(current.pid_)->second;
-    }
-    skeleton_path_.emplace_back(current);
-    std::reverse(skeleton_path_.begin(), skeleton_path_.end());
+// void Planner::JumpPointSearch::backtracking(const Node &last_point) {
+//     skeleton_path_.clear();
+//     Node current = last_point;
+//     int iter = 0; 
+//     while (current.id_ != current.pid_) {
+//         iter++; if(iter>1000) break;
+//         skeleton_path_.emplace_back(current);
+//         std::cout <<"Never finish?" <<std::endl;
+//         std::cout << current.id_ << ", " << current.pid_ << std::endl;
+//         current = closed_list_.find(current.pid_)->second;
+//     }
+//     skeleton_path_.emplace_back(current);
+//     std::reverse(skeleton_path_.begin(), skeleton_path_.end());
 
-}
+// }
 
 void Planner::JumpPointSearch::InsertionSort(std::vector<Node>& v){
     int nV = v.size();
@@ -120,71 +123,88 @@ void Planner::JumpPointSearch::InsertionSort(std::vector<Node>& v){
 
 std::vector<Planner::Node>
 Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_in, Node goal_in) {
+            // continue;
 
-    this->grid = grid;
-    start_ = start_in;
-    goal_ = goal_in;
-    grid_map::Size size_; size_ = grid.getSize();
-    dimx = size_(0,0);
-    dimy = size_(1,0);
-    // Get possible motions
-    std::vector<Node> motion = GetMotion();
-    open_list_.push(start_);
+        std::cout << "Inside JPS" << std::endl; 
+        std::cout << grid.at("base", goal_in.idx_) << std::endl;
 
-    // Main loop
-    Node temp;
-    while (!open_list_.empty()) {
-        std::cout << "Hey1" << std::endl; 
-        Node current = open_list_.top();
-        open_list_.pop();
-        current.id_ = current.idx_(0,0) * dimy + current.idx_(1,0);
-        if (current.idx_(0,0) == goal_.idx_(0,0) && current.idx_(1,0) == goal_.idx_(1,0)) {
-            std::cout << "Hey1.1" << std::endl;
-            closed_list_.insert(std::make_pair(current.id_, current));
-            grid.at("base", current.idx_) = 2;
-            backtracking(current);
-            std::cout << "Hey1.2" << std::endl;
-            return skeleton_path_;
+        try
+        {   if(grid.at("base", goal_in.idx_) >0.25)
+                throw grid.at("base", goal_in.idx_); 
         }
-        std::cout << "Hey2" << std::endl; 
-        grid.at("base", current.idx_) = 2; // Point opened
-        int current_cost = current.cost_;
-        for (auto it = motion.begin(); it != motion.end(); ++it) {
-            std::cout << "Hey3" << std::endl; 
-            Node new_point;
-            new_point = current + *it;
-            new_point.id_ = dimy * new_point.idx_(0,0) + new_point.idx_(1,0);
-            new_point.pid_ = current.id_;
-            new_point.h_cost_ = abs(new_point.idx_(0,0) - goal_.idx_(0,0)) + abs(new_point.idx_(1,0) - goal_.idx_(1,0));
-            if (new_point == goal_) {
-                open_list_.push(new_point);
-                break;
+        catch(double e)
+        {
+            std::cout << "Goal Point is Unknown/Obstacle Area: "<< e << std::endl;
+            // std::cerr << e.what() << '\n';
+        }
+        
+    
+        this->grid = grid;
+        start_ = start_in;
+        goal_ = goal_in;
+        grid_map::Size size_; size_ = grid.getSize();
+        dimx = size_(0,0);
+        dimy = size_(1,0);
+        // Get possible motions
+        std::vector<Node> motion = GetMotion();
+        open_list_.push(start_);
+
+        // Main loop
+        Node temp;
+        while (!open_list_.empty()) {
+            // std::cout << "Hey1" << std::endl; 
+            Node current = open_list_.top();
+            std::cout << "Size of open list: " << open_list_.size() << " Index: " << current.idx_(0,0) << ", " << current.idx_(1,0) << std::endl; 
+            open_list_.pop();
+            current.id_ = current.idx_(0,0) * dimy + current.idx_(1,0);
+            if (current.idx_(0,0) == goal_.idx_(0,0) && current.idx_(1,0) == goal_.idx_(1,0)) {
+                // std::cout << "Hey1.1" << std::endl;
+                closed_list_.push_back(current);
+                grid.at("base", current.idx_) = 2;
+                // backtracking(current);
+                // std::cout << "Hey1.2" << std::endl;
+                return closed_list_;
             }
-            if (new_point.idx_(0,0) < 0 || new_point.idx_(1,0) < 0 || new_point.idx_(0,0) >= dimx || new_point.idx_(1,0) >= dimy)
-                continue; // Check boundaries
-            if (grid.at("base", new_point.idx_) != 0) {
-                continue; //obstacle or visited
-            }
-            std::cout << "Hey4" << std::endl; 
-            Node jump_point = jump(new_point, *it, current.id_);
-            if (jump_point.id_ != -1) {
-                open_list_.push(jump_point);
-                if (jump_point.idx_(0,0) == goal_.idx_(0,0) && jump_point.idx_(1,0) == goal_.idx_(1,0)) {
-                    closed_list_.insert(std::make_pair(current.id_, current));
-                    closed_list_.insert(std::make_pair(jump_point.id_, jump_point));
-                    grid.at("base", jump_point.idx_) = 2;
-                    backtracking(jump_point);
-                    return skeleton_path_;
+            // std::cout << "Hey2" << std::endl; 
+            grid.at("base", current.idx_) = 2; // Point opened
+            int current_cost = current.cost_;
+            for (auto it = motion.begin(); it != motion.end(); ++it) {
+                // std::cout << "Hey3" << std::endl; 
+                Node new_point;
+                new_point = current + *it;
+                new_point.id_ = dimy * new_point.idx_(0,0) + new_point.idx_(1,0);
+                new_point.pid_ = current.id_;
+                new_point.h_cost_ = abs(new_point.idx_(0,0) - goal_.idx_(0,0)) + abs(new_point.idx_(1,0) - goal_.idx_(1,0));
+                if (new_point == goal_) {
+                    open_list_.push(new_point);
+                    break;
                 }
+                if (new_point.idx_(0,0) < 0 || new_point.idx_(1,0) < 0 || new_point.idx_(0,0) >= dimx || new_point.idx_(1,0) >= dimy)
+                    continue; // Check boundaries
+                if (grid.at("base", new_point.idx_) != 0) {
+                    continue; //obstacle or visited
+                }
+                // std::cout << "Hey4" << std::endl; 
+                Node jump_point = jump(new_point, *it, current.id_);
+                if (jump_point.id_ != -1) {
+                    open_list_.push(jump_point);
+                    if (jump_point.idx_(0,0) == goal_.idx_(0,0) && jump_point.idx_(1,0) == goal_.idx_(1,0)) {
+                        closed_list_.push_back(current);
+                        closed_list_.push_back(jump_point);
+                        grid.at("base", jump_point.idx_) = 2;
+                        // backtracking(jump_point);
+                        return closed_list_;
+                    }
+                }
+                open_list_.push(new_point);
             }
-            open_list_.push(new_point);
+            // std::cout << "Hey5" << std::endl; 
+            closed_list_.push_back(current);
         }
-        std::cout << "Hey5" << std::endl; 
-        closed_list_.insert(std::make_pair(current.id_, current));
-    }
-    skeleton_path_.clear();
-    grid_map::Index no_path(-1,-1);
-    Node no_path_node(no_path, -1, -1, -1, -1);
-    skeleton_path_.emplace_back(no_path_node);
-    return skeleton_path_;
+        closed_list_.clear();
+        grid_map::Index no_path(-1,-1);
+        Node no_path_node(no_path, -1, -1, -1, -1);
+        closed_list_.push_back(no_path_node);
+        return closed_list_;
+    
 }

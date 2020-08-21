@@ -309,7 +309,7 @@ namespace RayTracer{
             sfc.generate_SFC(obs_grid);
             cout << "Get Corridor Before" << endl; 
             vec_E<Polyhedron<2>> cur_sfc = sfc.get_corridor();
-            sfc_ft_pair_ = make_pair(cur_sfc, selected_fts_.at(i));
+            sfc_ft_pair_.push_back(make_pair(cur_sfc, selected_fts_.at(i)));
         }
         
         //Should return the pair between frontier cell & SFC block.
@@ -325,8 +325,10 @@ namespace RayTracer{
         grid_map::Index cur_index; 
         belief_map_.getIndex(pos, cur_index);
         grid_map::Index frontier_index; 
+
         for(int i=0; i<selected_fts_.size(); i++){
-            belief_map_.getIndex(selected_fts_.at(i), frontier_index);
+            grid_map::Position fts_pose; fts_pose = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
+            belief_map_.getIndex(fts_pose, frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index);
             std::vector<Eigen::Vector2d> path;
             path = sfc.JPS_Path();

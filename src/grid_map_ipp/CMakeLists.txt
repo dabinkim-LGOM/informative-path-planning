@@ -17,12 +17,14 @@ find_package(catkin REQUIRED
             nav_msgs 
             grid_map_ros
             grid_map_msgs
+            decomp_ros_msgs
+            decomp_ros_utils
             )
 
 catkin_package(
   INCLUDE_DIRS  ${Eigen3_INCLUDE_DIRS} ${OCTOMAP_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS}
   LIBRARIES  ${catkin_LIBRARIES} ${OCTOMAP_LIBRARIES} ${grid_map_ipp_LIBRARIES}
-  CATKIN_DEPENDS roscpp geometry_msgs visualization_msgs grid_map_msgs nav_msgs
+  CATKIN_DEPENDS roscpp geometry_msgs visualization_msgs grid_map_msgs nav_msgs decomp_ros_msgs decomp_ros_utils
   )
 
 include_directories(include ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS} ${grid_map_ros_INCLUDE_DIRS}
@@ -31,6 +33,7 @@ include_directories(include ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
                    ${grid_map_ipp_INCLUDE_DIRS})
 
 include_directories(${DECOMP_UTIL_INCLUDE_DIRS})
+include_directories(${decomp_ros_utils_INCLUDE_DIRS} ${decomp_ros_utils_INCLUDE_DIRS}/../)
 
 # add_executable(test_grid_map  test/test_gt_map.cpp src/ObstacleGridConverter.cpp)
 
@@ -55,7 +58,7 @@ add_executable(test_SFC test/test_SFC.cpp src/grid_map_ipp.cpp src/ObstacleGridC
               
 target_include_directories(test_SFC PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
                           ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
-                          ${grid_map_sdf_INCLUDE_DIRS} 
+                          ${grid_map_sdf_INCLUDE_DIRS}  ${decomp_ros_utils_INCLUDE_DIRS}
                           )
 
 # target_link_libraries(test_lidar ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
@@ -67,7 +70,7 @@ target_include_directories(test_SFC PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_cor
 #                       ${grid_map_ipp_LIBRARIES})
 target_link_libraries(test_SFC ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
                       ${grid_map_sdf_LIBRARIES}  
-                      ${grid_map_ipp_LIBRARIES})
+                      ${grid_map_ipp_LIBRARIES} ${decomp_ros_utils_LIBRARIES})
                                  
 
 set(PYBIND11_CPP_STANDARD -std=c++11)

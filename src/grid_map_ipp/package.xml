@@ -19,6 +19,8 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>visualization_msgs</build_depend>
+  <build_depend>decomp_ros_msgs</build_depend>
+  <build_depend>decomp_ros_utils</build_depend>
   
   <run_depend>roscpp</run_depend>
   <run_depend>grid_map_ros</run_depend>
@@ -27,6 +29,8 @@
   <run_depend>geometry_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
   <run_depend>visualization_msgs</run_depend>
+  <run_depend>decomp_ros_msgs</run_depend>
+  <run_depend>decomp_ros_utils</run_depend>
 
   <!-- <export>
     <nodelet plugin="${prefix}/nodelet_plugins.xml" />

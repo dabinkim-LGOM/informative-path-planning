@@ -76,7 +76,7 @@ namespace RayTracer{
             std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
             Eigen::Vector2d submap_length_; //Submap length for local path optimization 
 
-            std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> sfc_ft_pair_;        
+            std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > sfc_ft_pair_;        
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
              : range_max_(range_max), range_min_(range_min), hangle_max_(hangle_max), hangle_min_(hangle_min), angle_resol_(angle_resol), map_size_x_(map_size_x), map_size_y_(map_size_y)
@@ -137,7 +137,7 @@ namespace RayTracer{
 
             //Construct SFC based on frontiers
             void construct_SFC(Eigen::Vector2d& pos);
-            std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> get_SFC(){
+            std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > get_SFC(){
                 return sfc_ft_pair_;
             }
             vector<vector<Eigen::Vector2d> > get_JPS_Path(Eigen::Vector2d& pos);

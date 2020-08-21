@@ -141,8 +141,8 @@ namespace Planner{
         private:
         std::priority_queue<Node, std::vector<Node>, compare_cost> open_list_;
         grid_map::GridMap grid;
-        std::map<int, Node> closed_list_;
-        std::vector<Node> skeleton_path_;
+        std::vector<Node> closed_list_;
+        // std::vector<Node> skeleton_path_;
         std::unordered_set<int> pruned;
         Node start_, goal_;
         int dimx, dimy;

@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED ( VERSION 2.8.12 )
 PROJECT(grid_map_ipp)
 set(ROS_BUILD_TYPE Debug)
-# add_definitions(-std=c++17)
+add_definitions(-std=c++17)
 
 
 find_package(Eigen3 REQUIRED)

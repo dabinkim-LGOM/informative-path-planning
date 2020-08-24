@@ -6,10 +6,10 @@
 
 // #include <grid_map_ipp/grid_map_ipp.hpp>
 #include "grid_map_core/GridMap.hpp"
-#include <decomp_util/iterative_decomp.h>
+#include <decomp_util/ellipsoid_decomp.h>
 #include <SFC/JPS.h>
 
-typedef std::vector<std::vector<std::pair<std::vector<double>, double>>> cor_type;
+// typedef std::vector<std::vector<std::vector<double> > > cor_type;
 
 namespace Planner
 {
@@ -17,21 +17,46 @@ namespace Planner
     class SFC
     {   
         protected:
-            typedef std::vector<std::vector<std::pair<std::vector<double>, double>>> cor_type;
+            typedef std::vector<std::vector<double> > cor_type;
             
         private:
             // RayTracer::Lidar_sensor lidar_; 
             grid_map::Index cur_index_;
             grid_map::GridMap belief_map_;
+            grid_map::Size size_;
+            double world_x_min;
+            double world_x_max;
+            double world_y_min;
+            double world_y_max;
+            double box_xy_res; 
+
             //Frontier cell is in vector of Indices
-            grid_map::Index goal_frontier_; // Frontier cell that we want to generate SFC 
+            grid_map::Index goal_frontier_; // Frontier Index that we want to generate SFC 
             vec_E<Polyhedron<2>> Corridor_;
+            cor_type Corridor_jwp_;
+            double margin_ = 0.0;
+            double SP_EPSILON = 0.0;
 
+            std::vector<Eigen::Vector2d> obs_grid; //Obstacle vector is given with respect to the grid reference frame.
         public:
-            SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index): belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index)
-            {}
+            SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index, std::vector<Eigen::Vector2d>& obs)
+            : belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index), obs_grid(obs)
+            {
+                size_ = map.getSize();
+                world_x_min = (-1.0/2.0)*size_(0,0);
+                world_x_max = (1.0/2.0)*size_(0,0);
+                world_y_min = (-1.0/2.0)*size_(1,0);
+                world_y_max = (-1.0/2.0)*size_(1,0);
+                box_xy_res = map.getResolution();
+            }
 
-            vec_E<Polyhedron<2>> generate_SFC(std::vector<Eigen::Vector2d>& obs);
+            vec_E<Polyhedron<2>> generate_SFC();
+            void generate_SFC_jwp();
+            
+            cor_type get_corridor_jwp(){
+                return Corridor_jwp_;
+            }
+
             vec_E<Polyhedron<2>> get_corridor()
             {
                 return Corridor_;
@@ -39,6 +64,12 @@ namespace Planner
             std::vector<Eigen::Vector2d> JPS_Path();
 
             void visualize_SFC(vec_E<Polyhedron<2>>& SFC);
+
+            void expand_box(std::vector<double> &box, double margin);
+            bool updateObsBox(std::vector<Eigen::Vector2d> initTraj);
+            bool isObstacleInBox(const std::vector<double> &box, double margin);
+            bool isBoxInBoundary(const std::vector<double> &box);
+            bool isPointInBox(const grid_map::Position  &point, const std::vector<double> &box);
     };
 }
 

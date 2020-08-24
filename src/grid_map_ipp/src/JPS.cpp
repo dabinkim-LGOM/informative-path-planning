@@ -125,8 +125,8 @@ std::vector<Planner::Node>
 Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_in, Node goal_in) {
             // continue;
 
-        std::cout << "Inside JPS" << std::endl; 
-        std::cout << grid.at("base", goal_in.idx_) << std::endl;
+        // std::cout << "Inside JPS" << std::endl; 
+        // std::cout << grid.at("base", goal_in.idx_) << std::endl;
 
         try
         {   if(grid.at("base", goal_in.idx_) >0.25)
@@ -154,7 +154,7 @@ Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_
         while (!open_list_.empty()) {
             // std::cout << "Hey1" << std::endl; 
             Node current = open_list_.top();
-            std::cout << "Size of open list: " << open_list_.size() << " Index: " << current.idx_(0,0) << ", " << current.idx_(1,0) << std::endl; 
+            // std::cout << "Size of open list: " << open_list_.size() << " Index: " << current.idx_(0,0) << ", " << current.idx_(1,0) << std::endl; 
             open_list_.pop();
             current.id_ = current.idx_(0,0) * dimy + current.idx_(1,0);
             if (current.idx_(0,0) == goal_.idx_(0,0) && current.idx_(1,0) == goal_.idx_(1,0)) {

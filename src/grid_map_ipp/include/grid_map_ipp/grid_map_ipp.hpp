@@ -56,6 +56,8 @@ namespace RayTracer{
     //Lidar sensor class is permanent for the robot. It has belief_map which recurrently updated with measurement values. 
     class Lidar_sensor{
         private:
+            typedef std::vector<std::vector< std::vector<double> > > Cor_vec;
+            typedef std::vector< std::vector<double> > Cor; 
             double range_max_;
             double range_min_;
             double hangle_max_;
@@ -76,7 +78,9 @@ namespace RayTracer{
             std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
             Eigen::Vector2d submap_length_; //Submap length for local path optimization 
 
-            std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > sfc_ft_pair_;        
+            std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > sfc_ft_pair_; //SFC and Frontier point. (euc ref)      
+            Cor_vec sfc_jwp_; 
+
         public:
             Lidar_sensor(double range_max, double range_min, double hangle_max, double hangle_min, double angle_resol, double map_size_x, double map_size_y, double resol, Raytracer& raytracer)
              : range_max_(range_max), range_min_(range_min), hangle_max_(hangle_max), hangle_min_(hangle_min), angle_resol_(angle_resol), map_size_x_(map_size_x), map_size_y_(map_size_y)
@@ -140,7 +144,15 @@ namespace RayTracer{
             std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > get_SFC(){
                 return sfc_ft_pair_;
             }
+            void construct_SFC_jwp(Eigen::Vector2d& pos);
+            Cor_vec get_SFC_jwp(){
+                return sfc_jwp_;
+            }
+
             vector<vector<Eigen::Vector2d> > get_JPS_Path(Eigen::Vector2d& pos);
+            std::vector<Eigen::Vector2d> generate_obs_grid(Eigen::Vector2d pos);
+
+
     };
 
 }

@@ -1,23 +1,24 @@
 #include <SFC/SFC.hpp>
 
 using namespace std;
-//Obstacle vector is given with respect to the grid reference frame. 
-vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& obs_grid)
+ 
+vec_E<Polyhedron<2>> Planner::SFC::generate_SFC()
 {
     Planner::JumpPointSearch jps;
     //Map fit to JPS form. 
     //Get solution from JPS;  --> JPS on Index of each grid. 
     //sol = jps.jump_point_search();
     //
-    cout << "Before JPS" << endl; 
+    // cout << "Before JPS" << endl; 
     std::vector<Planner::Node> jps_result; 
-    cout << "Cur Index: " << cur_index_(0,0) << ", " << cur_index_(1,0) << endl; 
-    cout << "Frontier Goal Index: " << goal_frontier_(0,0) << ", " << goal_frontier_(1,0) << endl; 
+    // cout << "Cur Index: " << cur_index_(0,0) << ", " << cur_index_(1,0) << endl; 
+    // cout << "Frontier Goal Index: " << goal_frontier_(0,0) << ", " << goal_frontier_(1,0) << endl; 
     
     Planner::Node start_node(cur_index_, 0.0, 0.0, 0, 0); 
     Planner::Node goal_node(goal_frontier_, 0.0, 0.0, 0, 0);
     jps_result = jps.jump_point_search(belief_map_, start_node, goal_node);
-    cout << "After JPS" << endl; 
+    // cout << "After JPS" << endl; 
+
     //Reconstruct path from grid index to grid-ref double values. 
     vec_Vec2f recon_jps_path; 
     grid_map::Position pos;
@@ -57,30 +58,68 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC(std::vector<Eigen::Vector2d>& ob
     const Vec2f range(x_size, y_size);
 
     // Path to dilate
-    vec_Vec2f path;
-    // path.push_back(Vec2f(-1.5, 0.0));
-    // path.push_back(Vec2f(1.5, 0.3));
 
     // Initialize SeedDecomp2D
-    IterativeDecomp2D decomp(origin, range);
+    EllipsoidDecomp2D decomp(origin, range);
     decomp.set_obs(obstacles);
     decomp.set_local_bbox(Vec2f(2, 2));
-    decomp.dilate_iter(recon_jps_path, 5, 0.3, 0.0);
+    decomp.dilate(recon_jps_path, 0.0);
     
-    vec_E<Polyhedron<2>> SFC = decomp.get_polyhedrons();
-    Corridor_ = SFC; 
+    auto SFC = decomp.get_polyhedrons();
+    // std::cout << SFC.at(0).hyperplanes
+    // Corridor_ = SFC;     
     return SFC; 
+}
+
+
+void Planner::SFC::generate_SFC_jwp()
+{
+    Planner::JumpPointSearch jps;
+    //Map fit to JPS form. 
+    //Get solution from JPS;  --> JPS on Index of each grid. 
+    //sol = jps.jump_point_search();
+    
+    // cout << "Before JPS" << endl; 
+    std::vector<Planner::Node> jps_result; 
+    // cout << "Cur Index: " << cur_index_(0,0) << ", " << cur_index_(1,0) << endl; 
+    // cout << "Frontier Goal Index: " << goal_frontier_(0,0) << ", " << goal_frontier_(1,0) << endl; 
+    
+    Planner::Node start_node(cur_index_, 0.0, 0.0, 0, 0); 
+    Planner::Node goal_node(goal_frontier_, 0.0, 0.0, 0, 0);
+    jps_result = jps.jump_point_search(belief_map_, start_node, goal_node);
+    // cout << "After JPS" << endl; 
+
+    //Reconstruct path from grid index to grid-ref double values. 
+    std::vector<Eigen::Vector2d> recon_jps_path; 
+    grid_map::Position pos;
+    // Eigen::Vector2d float_pos; 
+    for(int i=0; i<jps_result.size(); i++){
+        belief_map_.getPosition(jps_result.at(i).idx_, pos);
+        // float_pos(0,0) = pos(0,0);
+        // float_pos(1,0) = pos(1,0);
+        
+        recon_jps_path.push_back(pos);
+    }
+
+    // Set obstacles
+    //Transform obs -> obstacles 
+    vector<Eigen::Vector2d> obstacles;
+    Eigen::Vector2d cur_obstacle;
+    for(int i=0; i<obs_grid.size(); i++){
+        cur_obstacle(0,0) = (obs_grid.at(i))(0,0);
+        cur_obstacle(1,0) = (obs_grid.at(i))(1,0);
+        obstacles.push_back(cur_obstacle);
+    }
+    
+    bool gen_box = updateObsBox(recon_jps_path);
+
 }
 
 //Grid reference frame
 std::vector<Eigen::Vector2d> Planner::SFC::JPS_Path()
 {
     Planner::JumpPointSearch jps;
-    //Map fit to JPS form. 
-    //Get solution from JPS;  --> JPS on Index of each grid. 
-    //sol = jps.jump_point_search();
-    //
-    
+
     std::vector<Planner::Node> jps_result; 
     Planner::Node start_node(cur_index_, 0.0, 0.0, 0, 0); 
     Planner::Node goal_node(goal_frontier_, 0.0, 0.0, 0, 0);
@@ -96,6 +135,165 @@ std::vector<Eigen::Vector2d> Planner::SFC::JPS_Path()
 
     return eigen_result; 
 }
+
+
+
+void Planner::SFC::expand_box(std::vector<double> &box, double margin) {
+    std::vector<double> box_cand, box_update;
+    std::vector<int> axis_cand{0, 1, 2, 3};
+
+    int i = -1;
+    int axis;
+    while (!axis_cand.empty()) {
+        box_cand = box;
+        box_update = box;
+        i++;
+        if (i >= axis_cand.size()) {
+            i = 0;
+        }
+        axis = axis_cand[i];
+
+        //check update_box only! update_box + current_box = cand_box
+        while (!isObstacleInBox(box_update, margin) && isBoxInBoundary(box_update)) {
+
+            //update current box
+            box = box_cand;
+            box_update = box_cand;
+
+            //expand cand_box and get updated part of box(update_box)
+            if (axis < 2) {
+                box_update[axis + 2] = box_cand[axis];
+                box_cand[axis] = box_cand[axis] - box_xy_res;
+                box_update[axis] = box_cand[axis];
+            } else {
+                box_update[axis - 2] = box_cand[axis];
+                box_cand[axis] = box_cand[axis] + box_xy_res;
+                box_update[axis] = box_cand[axis];
+            }
+
+            box = box_update; 
+        }
+        axis_cand.erase(axis_cand.begin() + i);
+        if (i > 0) {
+            i--;
+        } else {
+            i = axis_cand.size() - 1;
+        }
+    }
+}
+
+/**
+ * Initial trajectory is given as index value. 
+ * */
+bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
+    double x_next, y_next, dx, dy;
+
+    std::vector<double> box_prev{0, 0, 0, 0};
+
+    for (int i = 0; i < initTraj.size() - 1; i++) {
+        auto state = initTraj[i];
+        double x = state(0,0);
+        double y = state(1,0);
+
+        std::vector<double> box;
+        auto state_next = initTraj[i + 1];
+        x_next = state_next(0,0);
+        y_next = state_next(1,0);
+
+        Eigen::Vector2d pos_next(x_next, y_next);
+        if (isPointInBox(pos_next, box_prev)) {
+            continue;
+        }
+
+        // Initialize box
+        box.emplace_back(round(std::min(x, x_next) / box_xy_res) * box_xy_res);
+        box.emplace_back(round(std::min(y, y_next) / box_xy_res) * box_xy_res);
+        box.emplace_back(round(std::max(x, x_next) / box_xy_res) * box_xy_res);
+        box.emplace_back(round(std::max(y, y_next) / box_xy_res) * box_xy_res);
+
+        if (isObstacleInBox(box, margin_)) {
+            std::cout << "Corridor: Invalid initial trajectory. Obstacle invades initial trajectory." << std::endl;
+            std::cout << "Corridor: x " << x << ", y " << y << std::endl;
+
+            bool debug =isObstacleInBox(box, margin_);
+            return false;
+        }
+        expand_box(box, margin_);
+
+        Corridor_jwp_.emplace_back(box);
+
+        box_prev = box;
+    }
+
+
+
+    // timer.stop();
+    // ROS_INFO_STREAM("Corridor: SFC runtime=" << timer.elapsedSeconds());
+    return true;
+}
+
+/**
+ * Check wheter BOX has obstacle inside. 
+ * BOX is given in index values. 
+ * */
+bool Planner::SFC::isObstacleInBox(const std::vector<double> &box, double margin) {
+    double x, y;
+
+    for(int i=0; i<obs_grid.size(); i++){
+        auto obs_grid_pos = obs_grid.at(i); 
+        grid_map::Index obs_grid; 
+        belief_map_.getIndex(obs_grid_pos, obs_grid);
+        x = obs_grid(0,0); y = obs_grid(1,0);
+        if( box[0]-SP_EPSILON < x && x < box[2]+SP_EPSILON )
+            return true; 
+        if( box[1]-SP_EPSILON < y && y < box[3]+SP_EPSILON )
+            return true;
+    }
+    return false; 
+
+    // int count1 = 0;
+    // for (double i = box[0]; i < box[2] + SP_EPSILON; i += box_xy_res) {
+    //     int count2 = 0;
+    //     for (double j = box[1]; j < box[3] + SP_EPSILON; j += box_xy_res) {
+    //         int count3 = 0;
+
+    //             x = i + SP_EPSILON;
+    //             if (count1 == 0 && box[0] > world_x_min + SP_EPSILON) {
+    //                 x = box[0] - SP_EPSILON;
+    //             }
+    //             y = j + SP_EPSILON;
+    //             if (count2 == 0 && box[1] > world_y_min + SP_EPSILON) {
+    //                 y = box[1] - SP_EPSILON;
+    //             }
+
+    //             Eigen::Vector2d cur_point(x, y);
+    //             float dist = distmap_obj.get()->getDistance(cur_point);
+    //             if (dist < margin - SP_EPSILON) {
+    //                 return true;
+    //             }
+            
+    //         count2++;
+    //     }
+    //     count1++;
+    // }
+}
+
+bool Planner::SFC::isBoxInBoundary(const std::vector<double> &box) {
+    return box[0] > world_x_min - SP_EPSILON &&
+            box[1] > world_y_min - SP_EPSILON &&
+            box[2] < world_x_max + SP_EPSILON &&
+            box[3] < world_y_max + SP_EPSILON;
+}
+
+bool Planner::SFC::isPointInBox(const grid_map::Position &point,
+                    const std::vector<double> &box) {
+    return point(0,0) > box[0] - SP_EPSILON &&
+            point(1,0) > box[1] - SP_EPSILON &&
+            point(0,0) < box[2] + SP_EPSILON &&
+            point(1,0) < box[3] + SP_EPSILON;
+}
+
+
 
 void Planner::SFC::visualize_SFC(vec_E<Polyhedron<2>>& SFC)
 {

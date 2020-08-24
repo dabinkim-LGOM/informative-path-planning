@@ -4,11 +4,14 @@
 #include <grid_map_ipp/wavefront_frontier_detection.hpp>
 #include <grid_map_ipp/ObstacleGridConverter.hpp>
 #include <grid_map_ipp/grid_map_ipp.hpp>
+#include <grid_map_ipp/visualization.h>
 #include <decomp_ros_utils/data_ros_utils.h>
+#include <string>
 // #include <decomp_ros_utils/polyhedron_array_display.h>
 // #include <grid_map_ipp/util.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
 #include <iostream>
 #include <Eigen/Dense>
@@ -22,63 +25,7 @@
 using namespace std; 
 using namespace grid_map;
 
-visualization_msgs::Marker generate_marker(geometry_msgs::Point pt, double goal_x, double goal_y, int iter)
-  {
-      visualization_msgs::Marker Marker_lane;
-      Marker_lane.id = iter;
-      Marker_lane.type = visualization_msgs::Marker::SPHERE;
-      Marker_lane.action = visualization_msgs::Marker::ADD;
-      Marker_lane.pose.orientation.w = 1.0;
-      Marker_lane.pose.orientation.x = 0.0;
-      Marker_lane.pose.orientation.y = 0.0;
-      Marker_lane.pose.orientation.z = 0.0;
-  
-      Marker_lane.header.frame_id = "map";
-      Marker_lane.color.a = 1.0;
-      Marker_lane.color.r = 1.0;
-      Marker_lane.color.g = 0.0;
-      Marker_lane.color.b = 0.0;
-      Marker_lane.scale.x = 0.5;
-      Marker_lane.scale.y = 0.5;
-      Marker_lane.scale.z = 0.5;
-  
-      pt.x = pt.x - goal_x;
-      pt.y = pt.y - goal_y;
-      // Marker_lane.header.stamp = ros::Time();
-      Marker_lane.pose.position.x = pt.x;
-      Marker_lane.pose.position.y = pt.y;
-      Marker_lane.pose.position.z = pt.z;
-      return Marker_lane;
- }
 
-visualization_msgs::Marker generate_marker(geometry_msgs::Point pt, double goal_x, double goal_y, int iter, double r, double g, double b)
-  {
-      visualization_msgs::Marker Marker_lane;
-      Marker_lane.id = iter;
-      Marker_lane.type = visualization_msgs::Marker::SPHERE;
-      Marker_lane.action = visualization_msgs::Marker::ADD;
-      Marker_lane.pose.orientation.w = 1.0;
-      Marker_lane.pose.orientation.x = 0.0;
-      Marker_lane.pose.orientation.y = 0.0;
-      Marker_lane.pose.orientation.z = 0.0;
-  
-      Marker_lane.header.frame_id = "map";
-      Marker_lane.color.a = 1.0;
-      Marker_lane.color.r = r;
-      Marker_lane.color.g = g;
-      Marker_lane.color.b = b;
-      Marker_lane.scale.x = 0.5;
-      Marker_lane.scale.y = 0.5;
-      Marker_lane.scale.z = 0.5;
-  
-      pt.x = pt.x - goal_x;
-      pt.y = pt.y - goal_y;
-      // Marker_lane.header.stamp = ros::Time();
-      Marker_lane.pose.position.x = pt.x;
-      Marker_lane.pose.position.y = pt.y;
-      Marker_lane.pose.position.z = pt.z;
-      return Marker_lane;
- }
 
 int main(int argc, char** argv)
 {
@@ -132,8 +79,8 @@ int main(int argc, char** argv)
     RayTracer::Lidar_sensor lidar(range_max, range_min, hangle_max, hangle_min, angle_resol, 100.0, 100.0, resol, raytracer);
 
     int x_idx; int y_idx;
-    nh.param<int>("x_idx", x_idx, 60);
-    nh.param<int>("y_idx", y_idx, 60);
+    nh.param<int>("x_idx", x_idx, 80);
+    nh.param<int>("y_idx", y_idx, 80);
     cout << x_idx << ", " << y_idx << endl; 
     
     grid_map::Index idx(x_idx, y_idx);
@@ -150,35 +97,58 @@ int main(int argc, char** argv)
 
 
     //SFC Start 
-    cout << "SFC start" << endl; 
     grid_map::Size size_; size_ = gt_map.getSize();
     vector<Eigen::Vector2d> selected_ft; 
     selected_ft.push_back(frontier_pos.front());
     selected_ft.push_back(frontier_pos.at(5));
     selected_ft.push_back(frontier_pos.back());
     lidar.set_selected_frontier(selected_ft);
-    cout << "CHECKPOINT 0" << endl; 
     
     lidar.construct_SFC(cur_pos);
 
-    cout << "CHECKPOINT 1" << endl; 
     std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > corridor_pair_vec = lidar.get_SFC();
-    cout << "CHECKPOINT 2" << endl;
     std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(grid_cur_pos);
-    cout << "CHECKPOINT 3" << endl; 
     
+
+    //SFC_jwp Start
+    lidar.construct_SFC_jwp(cur_pos);
+    std::vector<std::vector<std::vector<double>> > sfc_jwp_vec = lidar.get_SFC_jwp();
+
+    std::vector<visualization_msgs::MarkerArray> sfc_vis_vec; 
+    cout << "SIZE: " << sfc_jwp_vec.size() << endl;
+    for(int i=0; i<sfc_jwp_vec.size(); i++){
+        // std::vector<std::vector<double> > cur_box_vec;
+
+        cout << "SIZE2: " << sfc_jwp_vec.at(i).size() << endl;
+        for(int j=0; j<sfc_jwp_vec.at(i).size(); j++){
+            auto cur_vec = sfc_jwp_vec.at(i).at(j);
+            cout << "SIZE3: " << cur_vec.size() << endl;
+            for(int k=0; k<cur_vec.size(); k++){
+                cout << "i: " << i << " j: " << j << " k: " << k << " val: " << cur_vec.at(k) << endl;
+            }
+        }
+        visualization_msgs::MarkerArray sfc_vis = generate_corridor_marker(sfc_jwp_vec.at(i)); 
+        sfc_vis_vec.push_back(sfc_vis);
+    }
+
+
+
+    cout << "CHECK -1" << endl; 
     int num_t = 0;
     std::vector<visualization_msgs::Marker> jps_marker_vec; 
     for(int i=0; i<jps_path.size(); i++){
         for(int j=0; j<jps_path.at(i).size(); j++){
-            num_t++;
+            num_t++;    
             geometry_msgs::Point pt;
             pt.x = (jps_path.at(i).at(j))(0,0); pt.y = (jps_path.at(i).at(j))(1,0); pt.z = 0.0;
-            visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num_t, 0.0, 1.0, 0.0);
+            std::string st_index = std::to_string(pt.x) + " " + std::to_string(pt.y);
+            // cout << st_index << endl; 
+            visualization_msgs::Marker marker = generate_text_marker(pt, 0.0, 0.0, num_t, 1.0, 1.0, 1.0, st_index);
             jps_marker_vec.push_back(marker);
         }
     }
 
+    // cout << "CHECK0" << endl; 
     //SFC End 
 
     std::random_device rd;
@@ -188,9 +158,9 @@ int main(int argc, char** argv)
     std::uniform_int_distribution<int> dis(0, 20);
 
     vector<visualization_msgs::Marker> marker_vec;
-    cout << "Size of vector" << frontier_vec.size() << " " << endl;
+    // cout << "Size of vector" << frontier_vec.size() << " " << endl;
     int num = 0;
-    cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
+    // cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
     for(int i=0; i< clustered_frontiers.size(); i++){
         double r = dis(gen)/20.0; 
         for(int j=0; j<clustered_frontiers.at(i).size(); j++){
@@ -210,41 +180,56 @@ int main(int argc, char** argv)
         }
     }
 
+    cout << "CHECK1" << endl; 
+
     ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     ros::Rate rate(30.0);
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 1, true);
     ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
     ros::Publisher pub_vis_jps = nh.advertise<visualization_msgs::Marker>("jps", 100, true);
-
-    ros::Publisher es_pub = nh.advertise<decomp_ros_msgs::EllipsoidArray>("ellipsoid_array", 1, true);
-    ros::Publisher poly_pub = nh.advertise<decomp_ros_msgs::PolyhedronArray>("polyhedron_array", 1, true);
+    ros::Publisher pub_vis_sfc = nh.advertise<visualization_msgs::MarkerArray>("sfc", 100, true);
+    // ros::Publisher es_pub = nh.advertise<decomp_ros_msgs::EllipsoidArray>("ellipsoid_array", 1, true);
+    // ros::Publisher poly_pub = nh.advertise<decomp_ros_msgs::PolyhedronArray>("polyhedron_array", 1, true);
     grid_map::Size size = gt_map.getSize();
 
 
-    // decomp_ros_msgs::PolyhedronArray poly_msg = DecompROS::polyhedron_array_to_ros(corridor_pair.first);
-    // poly_msg.header.frame_id = "map";
-    
-    
-    for(size_t j = 0; j < jps_path.size(); j++) {
-        for(size_t i=0; i<jps_path.at(j).size() -1; i++){
-            const auto pt_inside = ((jps_path.at(j))[i] + (jps_path.at(j))[i+1]) / 2;
-            LinearConstraint2D cs(pt_inside, ((corridor_pair_vec.at(j)).first)[i].hyperplanes());
-            printf("i: %zu\n", i);
-            std::cout << "A: " << cs.A() << std::endl;
-            std::cout << "b: " << cs.b() << std::endl;
 
-            std::cout << "point: " << (jps_path.at(j))[i].transpose();
-            if(cs.inside((jps_path.at(j))[i]))
-            std::cout << " is inside!" << std::endl;
-            else
-            std::cout << " is outside!" << std::endl;
-            std::cout << "point: " << (jps_path.at(j))[i+1].transpose();
-            if(cs.inside((jps_path.at(j))[i+1]))
-            std::cout << " is inside!" << std::endl;
-            else
-            std::cout << " is outside!" << std::endl;
-        }
-    }
+
+    
+    // cout << "CHECK2" << endl; 
+    // cout << jps_path.size() << endl; 
+    // cout << "CORRIDOR size: " << corridor_pair_vec.size() << endl; 
+    // for(size_t j = 0; j < jps_path.size(); j++) {
+    //     cout << "HEY: " << jps_path.at(j).size() << endl; 
+    //     for(size_t i=0; i<jps_path.at(j).size() -1; i++){
+            
+    //         const auto pt_inside = ( (jps_path.at(j))[i] + (jps_path.at(j))[i+1] ) / 2;
+    //         cout << "CHECK2.0" << endl; 
+    //         auto corr = ((corridor_pair_vec.at(j)).first);
+    //         cout << "CHECK2.1" << endl; 
+            
+    //         auto polys = corr.at(i).hyperplanes();
+
+    //         cout << "CHCEK3" << endl;
+
+    //         LinearConstraint2D cs(pt_inside, polys);
+    //         printf("i: %zu\n", i);
+    //         std::cout << "A: " << cs.A() << std::endl;
+    //         std::cout << "b: " << cs.b() << std::endl;
+
+    //         std::cout << "point: " << (jps_path.at(j))[i].transpose();
+    //         if(cs.inside((jps_path.at(j))[i]))
+    //         std::cout << " is inside!" << std::endl;
+    //         else
+    //         std::cout << " is outside!" << std::endl;
+    //         std::cout << "point: " << (jps_path.at(j))[i+1].transpose();
+    //         if(cs.inside((jps_path.at(j))[i+1]))
+    //         std::cout << " is inside!" << std::endl ;
+    //         else
+    //         std::cout << " is outside!" << std::endl;
+    //     }
+    // }
+
 
     while(nh.ok())
     {
@@ -264,6 +249,9 @@ int main(int argc, char** argv)
             pub_vis_jps.publish(jps_marker_vec.at(i));
         }
 
+        for(int i=0; i<sfc_vis_vec.size(); i++){
+            pub_vis_sfc.publish(sfc_vis_vec.at(2));
+        }
         // poly_pub.publish(poly_msg);
         rate.sleep();    
     }

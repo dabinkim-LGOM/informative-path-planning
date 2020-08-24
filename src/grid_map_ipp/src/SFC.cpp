@@ -153,22 +153,22 @@ std::vector<double> Planner::SFC::expand_box(std::vector<double> &box, double ma
 
     int i = -1;
     int axis;
-    // while (!axis_cand.empty()) {
+    while (!axis_cand.empty()) {
         
-        
+        box_cand = box;
+        box_update = box;
         // cout << "TRUE OF FALSE: " << (!isObstacleInBox(box_update, margin) && isBoxInBoundary(box_update)) << endl; 
         // cout << "OBSTACLE: " << !isObstacleInBox(box_update, margin)  << endl; 
         // cout << "BOUNDARY: " << isBoxInBoundary(box_update) << endl; 
         //check update_box only! update_box + current_box = cand_box
-        for(int i=0; i<4; i++){
-            box_cand = box;
-        box_update = box;
+        // for(int i=0; i<4; i++){
+            
 
             while (!isObstacleInBox(box_update, margin) && isBoxInBoundary(box_update)) {
-                // i++;
-                // if (i >= axis_cand.size()) {
-                //     i = 0;
-                // }
+                i++;
+                if (i >= axis_cand.size()) {
+                    i = 0;
+                }
                 axis = axis_cand[i];
 
                 //update current box
@@ -182,24 +182,32 @@ std::vector<double> Planner::SFC::expand_box(std::vector<double> &box, double ma
                     box_cand[axis] = box_cand[axis] - box_xy_res;
                     box_update[axis] = box_cand[axis];
                     cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
+                    if(isObstacleInBox(box_update, margin))
+                        cout << "OBSTACLE IN BOX" << endl; 
+                    if(!isBoxInBoundary(box_update))
+                        cout << "BOX IN BOUNDARY" << endl; 
                 } else {
                     // box_update[axis - 2] = box_cand[axis];
                     box_cand[axis] = box_cand[axis] + box_xy_res;
                     box_update[axis] = box_cand[axis];
                     cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
+                    if(isObstacleInBox(box_update, margin))
+                        cout << "OBSTACLE IN BOX" << endl; 
+                    if(!isBoxInBoundary(box_update))
+                        cout << "BOX IN BOUNDARY" << endl; 
                 }
 
             }
 
-            // axis_cand.erase(axis_cand.begin());
-            // if (i > 0) {
-            //     i--;
-            // } else {
-            //     i = axis_cand.size() - 1;
-            // }
+            axis_cand.erase(axis_cand.begin());
+            if (i > 0) {
+                i--;
+            } else {
+                i = axis_cand.size() - 1;
+            }
         
     }
-    box = box_update; 
+    box = box_cand; 
     return box;
 }
 
@@ -225,10 +233,10 @@ bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
         x_next = state_next(0,0);
         y_next = state_next(1,0);
 
-        Eigen::Vector2d pos_next(x_next, y_next);
-        if (isPointInBox(pos_next, box_prev)) {
-            continue;
-        }
+        // Eigen::Vector2d pos_next(x_next, y_next);
+        // if (isPointInBox(pos_next, box_prev)) {
+        //     continue;
+        // }
 
         // Initialize box
         box.emplace_back(round(std::min(x, x_next) / box_xy_res) * box_xy_res);
@@ -297,7 +305,7 @@ bool Planner::SFC::isObstacleInBox(const std::vector<double> &box, double margin
                 if(cur_idx(0,0)>=(belief_map_.getSize())(0,0) || cur_idx(1,0)>=(belief_map_.getSize())(1,0)
                     || cur_idx(0,0)<0 || cur_idx(1,0)<0)
                     return true; 
-                if(belief_map_.at("base", cur_idx) > 0.3){
+                if(belief_map_.at("base", cur_idx) > 0.35){
                     return true; 
                 }
                 // float dist = distmap_obj.get()->getDistance(cur_point);

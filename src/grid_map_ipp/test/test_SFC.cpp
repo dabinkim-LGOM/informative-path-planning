@@ -93,7 +93,7 @@ int main(int argc, char** argv)
     
     lidar.set_belief_map(gt_map);
     std::vector<Eigen::Vector2d > frontier_pos = lidar.frontier_detection(cur_pos);
-    std::vector<std::vector<Eigen::Vector2d> > clustered_frontiers = lidar.frontier_clustering(frontier_pos);
+    std::vector<Eigen::Vector2d> clustered_frontiers = lidar.frontier_clustering(frontier_pos);
 
 
     //SFC Start 
@@ -107,8 +107,15 @@ int main(int argc, char** argv)
     lidar.construct_SFC(cur_pos);
 
     std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > corridor_pair_vec = lidar.get_SFC();
-    std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(grid_cur_pos);
-    
+    std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(cur_pos);
+    cout << "JPS_PATH" << endl; 
+    for(int i=0; i<jps_path.size(); i++){
+        cout << i <<"-th JPS Path" << endl; 
+        for(int j=0; j<jps_path.at(i).size(); j++){
+            cout << jps_path.at(i).at(j).transpose() << endl; 
+        }
+    }
+
 
     //SFC_jwp Start
     lidar.construct_SFC_jwp(cur_pos);
@@ -119,10 +126,9 @@ int main(int argc, char** argv)
     for(int i=0; i<sfc_jwp_vec.size(); i++){
         // std::vector<std::vector<double> > cur_box_vec;
 
-        cout << "SIZE2: " << sfc_jwp_vec.at(i).size() << endl;
+        cout << ""<< endl;
         for(int j=0; j<sfc_jwp_vec.at(i).size(); j++){
             auto cur_vec = sfc_jwp_vec.at(i).at(j);
-            cout << "SIZE3: " << cur_vec.size() << endl;
             for(int k=0; k<cur_vec.size(); k++){
                 cout << "i: " << i << " j: " << j << " k: " << k << " val: " << cur_vec.at(k) << endl;
             }
@@ -143,7 +149,7 @@ int main(int argc, char** argv)
             pt.x = (jps_path.at(i).at(j))(0,0); pt.y = (jps_path.at(i).at(j))(1,0); pt.z = 0.0;
             std::string st_index = std::to_string(pt.x) + " " + std::to_string(pt.y);
             // cout << st_index << endl; 
-            visualization_msgs::Marker marker = generate_text_marker(pt, 0.0, 0.0, num_t, 1.0, 1.0, 1.0, st_index);
+            visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num_t, 0.0, 0.0, 0.0);
             jps_marker_vec.push_back(marker);
         }
     }
@@ -161,24 +167,24 @@ int main(int argc, char** argv)
     // cout << "Size of vector" << frontier_vec.size() << " " << endl;
     int num = 0;
     // cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
-    for(int i=0; i< clustered_frontiers.size(); i++){
-        double r = dis(gen)/20.0; 
-        for(int j=0; j<clustered_frontiers.at(i).size(); j++){
-            num++;
-            Eigen::Vector2d pos = clustered_frontiers.at(i).at(j);
-            Eigen::Vector2d grid_pos = euc_to_gridref(pos, size_);
-            // grid_map::Index idx = frontier_vec.at(i).at(j);
-            // grid_map::Position pos;
-            // gt_map.getPosition(idx, pos);
+    // for(int i=0; i< clustered_frontiers.size(); i++){
+    //     double r = dis(gen)/20.0; 
+    //     for(int j=0; j<clustered_frontiers.at(i).size(); j++){
+    //         num++;
+    //         Eigen::Vector2d pos = clustered_frontiers.at(i).at(j);
+    //         Eigen::Vector2d grid_pos = euc_to_gridref(pos, size_);
+    //         // grid_map::Index idx = frontier_vec.at(i).at(j);
+    //         // grid_map::Position pos;
+    //         // gt_map.getPosition(idx, pos);
 
-            geometry_msgs::Point pt; 
-            pt.x = grid_pos(0,0); pt.y = grid_pos(1,0); pt.z = 0.0;
-            // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
+    //         geometry_msgs::Point pt; 
+    //         pt.x = grid_pos(0,0); pt.y = grid_pos(1,0); pt.z = 0.0;
+    //         // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
             
-            visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num, r, 0.0, 1-r);
-            marker_vec.push_back(marker);
-        }
-    }
+    //         visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num, r, 0.0, 1-r);
+    //         marker_vec.push_back(marker);
+    //     }
+    // }
 
     cout << "CHECK1" << endl; 
 
@@ -250,7 +256,7 @@ int main(int argc, char** argv)
         }
 
         for(int i=0; i<sfc_vis_vec.size(); i++){
-            pub_vis_sfc.publish(sfc_vis_vec.at(2));
+            pub_vis_sfc.publish(sfc_vis_vec.at(0));
         }
         // poly_pub.publish(poly_msg);
         rate.sleep();    

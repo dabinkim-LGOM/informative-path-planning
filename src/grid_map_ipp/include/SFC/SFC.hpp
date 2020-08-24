@@ -10,7 +10,7 @@
 #include <SFC/JPS.h>
 
 // typedef std::vector<std::vector<std::vector<double> > > cor_type;
-
+using namespace std; 
 namespace Planner
 {
     //Get Frontier points from current (belief) grid map 
@@ -34,8 +34,8 @@ namespace Planner
             grid_map::Index goal_frontier_; // Frontier Index that we want to generate SFC 
             vec_E<Polyhedron<2>> Corridor_;
             cor_type Corridor_jwp_;
-            double margin_ = 0.0;
-            double SP_EPSILON = 0.0;
+            double margin_ = -0.5;
+            double SP_EPSILON = 1.0;
 
             std::vector<Eigen::Vector2d> obs_grid; //Obstacle vector is given with respect to the grid reference frame.
         public:
@@ -46,8 +46,14 @@ namespace Planner
                 world_x_min = (-1.0/2.0)*size_(0,0);
                 world_x_max = (1.0/2.0)*size_(0,0);
                 world_y_min = (-1.0/2.0)*size_(1,0);
-                world_y_max = (-1.0/2.0)*size_(1,0);
+                world_y_max = (1.0/2.0)*size_(1,0);
                 box_xy_res = map.getResolution();
+                cout << "X MIN: " << world_x_min << endl; 
+                cout << "X MAX: " << world_x_max << endl; 
+                cout << "Y MIN: " << world_y_min << endl; 
+                cout << "Y MAX: " << world_y_max << endl; 
+                
+                // cout << "BOX RES" << box_xy_res << endl; 
             }
 
             vec_E<Polyhedron<2>> generate_SFC();
@@ -65,7 +71,7 @@ namespace Planner
 
             void visualize_SFC(vec_E<Polyhedron<2>>& SFC);
 
-            void expand_box(std::vector<double> &box, double margin);
+            std::vector<double> expand_box(std::vector<double> &box, double margin);
             bool updateObsBox(std::vector<Eigen::Vector2d> initTraj);
             bool isObstacleInBox(const std::vector<double> &box, double margin);
             bool isBoxInBoundary(const std::vector<double> &box);

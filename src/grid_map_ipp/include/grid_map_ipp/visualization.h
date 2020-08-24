@@ -95,11 +95,12 @@ visualization_msgs::Marker generate_text_marker(geometry_msgs::Point pt, double 
  visualization_msgs::MarkerArray generate_corridor_marker(std::vector<std::vector<double>> &box_vec)
 {   
     visualization_msgs::MarkerArray marker_array; 
+    marker_array.markers.clear();
     for(int i=0; i<box_vec.size(); i++){
         visualization_msgs::Marker marker;
         marker.header.frame_id = "map";
         marker.type = visualization_msgs::Marker::CUBE;
-        marker.color.a = 0.2;
+        marker.color.a = 0.5;
         marker.color.r = 0;
         marker.color.g = 1;
         marker.color.b = 0;
@@ -110,7 +111,7 @@ visualization_msgs::Marker generate_text_marker(geometry_msgs::Point pt, double 
         marker.scale.y = box_vec[i][3] - box_vec[i][1];
         marker.scale.z = 1.0;
         // marker.text =  to_string(corridor.t_start) + "-"+to_string(corridor.t_end);
-        marker_array.markers.push_back(marker);
+        marker_array.markers.emplace_back(marker);
     }
     return marker_array;
 }

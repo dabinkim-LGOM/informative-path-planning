@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <unordered_set>
+#include <random>
 
 using namespace std;
 
@@ -132,7 +133,9 @@ namespace RayTracer{
 
             //Frontier Detector, Return frontier voxels as position(conventional coordinate); 
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
-            vector<vector<Eigen::Vector2d> >  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
+            //Return center position(euc ref) of each cluster. 
+            vector<Eigen::Vector2d>  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
+            
             //By acquisiton functions of frontier points, Python module selects frontier values to generate SFC. 
             void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
             {

@@ -189,7 +189,7 @@ namespace RayTracer{
     }
 
 
-    std::vector<Eigen::Vector2d > Lidar_sensor::frontier_detection(grid_map::Position cur_pos){
+    std::vector<Eigen::Vector2d > Lidar_sensor::frontier_detection(grid_map::Position pos_euc){
         grid_map::Frontier ft;
         grid_map::Index cur_idx;
         //Convert conventional xy to grid_map xy coordinate
@@ -197,34 +197,31 @@ namespace RayTracer{
         size = belief_map_.getSize();
         int x_size = size(1); int y_size = size(0);
         
-        grid_map::Position pos_grid;
-        pos_grid(0) = cur_pos(1) - y_size/2.0;
-        pos_grid(1) = x_size / 2.0 - cur_pos(0);
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        // pos_grid(0) = pos_euc(1) - y_size/2.0;
+        // pos_grid(1) = x_size / 2.0 - pos_euc(0);
         
         belief_map_.getIndex(pos_grid, cur_idx);
-        cout << "BEFore BEFORE" << endl; 
-        cout << cur_idx << endl; 
+
         vector<vector<grid_map::Index> > frontier_vector = ft.wfd(belief_map_, cur_idx);
-        cout << frontier_vector.size() << endl; 
-        cout << "BEFore for" << endl; 
+
         //Convert index from grid_map to conventional xy cooridnate
         vector<Eigen::Vector2d> frontier_position; 
         for(int i=0; i<frontier_vector.size(); ++i){
             for(int j=0; j<frontier_vector.at(i).size(); ++j){
                 grid_map::Position trans_pos; 
                 belief_map_.getPosition(frontier_vector.at(i).at(j), trans_pos);
-                Eigen::Vector2d conv_pos; 
-                conv_pos(0) = x_size /2.0 - trans_pos(1);
-                conv_pos(1) = y_size/2.0 + trans_pos(0);
+                Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, map_size_); 
+                // conv_pos(0) = x_size /2.0 - trans_pos(1);
+                // conv_pos(1) = y_size/2.0 + trans_pos(0);
                 frontier_position.push_back(conv_pos);
             }
         }
-        cout << frontier_position.size() << endl; 
         return frontier_position;
     }
 
 
-    std::vector<std::vector<Eigen::Vector2d> > 
+    std::vector<Eigen::Vector2d>
     Lidar_sensor::frontier_clustering(std::vector<Eigen::Vector2d> frontier_pts){
         std::vector<std::vector<Eigen::Vector2d> > clustered_frontiers; //Clustered_frontiers with index 
         // Initial guess
@@ -254,7 +251,18 @@ namespace RayTracer{
                 cur_cluster.push_back(cur_center);
             }
         }
-        return clustered_frontiers;
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+
+
+        std::vector<Eigen::Vector2d> selected_ft; 
+        for(int i=0; i<clustered_frontiers.size(); i++){
+            std::uniform_int_distribution<int> dis(0, clustered_frontiers.at(i).size()-1);
+            int select = dis(gen); 
+            selected_ft.push_back(clustered_frontiers.at(i).at(select));
+        }
+        return selected_ft;
     }
 
 
@@ -263,19 +271,19 @@ namespace RayTracer{
      * 
      * @param pos : euc reference
      */
-    void Lidar_sensor::construct_SFC(Eigen::Vector2d& pos)
+    void Lidar_sensor::construct_SFC(Eigen::Vector2d& pos_euc)
     {   
-        grid_map::Position grid_pos = grid_map::euc_to_gridref(pos, map_size_);
-        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos);
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
         /**
          * Generate Vector of SFCs  
         **/
         grid_map::Index cur_index; 
-        belief_map_.getIndex(grid_pos, cur_index);
+        belief_map_.getIndex(pos_grid, cur_index);
         grid_map::Index frontier_index; 
         for(int i=0; i<selected_fts_.size(); i++){
-            grid_map::Position ft_grid_pose; ft_grid_pose = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
-            belief_map_.getIndex(ft_grid_pose, frontier_index);
+            grid_map::Position ft_pos_gride; ft_pos_gride = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
+            belief_map_.getIndex(ft_pos_gride, frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
             // cout << "SFC Before" << endl; 
             sfc.generate_SFC();
@@ -287,18 +295,19 @@ namespace RayTracer{
         //Should return the pair between frontier cell & SFC block.
     }
 
-    void Lidar_sensor::construct_SFC_jwp(Eigen::Vector2d& pos){
-        grid_map::Position grid_pos = grid_map::euc_to_gridref(pos, map_size_);
-        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos);
+    void Lidar_sensor::construct_SFC_jwp(Eigen::Vector2d& pos_euc){
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        // grid_map::Position pos_grid = pos;
+        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
         /**
          * Generate Vector of SFCs  
         **/
         grid_map::Index cur_index; 
-        belief_map_.getIndex(grid_pos, cur_index);
+        belief_map_.getIndex(pos_grid, cur_index);
         grid_map::Index frontier_index; 
         for(int i=0; i<selected_fts_.size(); i++){
-            grid_map::Position ft_grid_pose; ft_grid_pose = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
-            belief_map_.getIndex(ft_grid_pose, frontier_index);
+            grid_map::Position ft_pos_gride; ft_pos_gride = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
+            belief_map_.getIndex(ft_pos_gride, frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
 
             sfc.generate_SFC_jwp();
@@ -309,7 +318,7 @@ namespace RayTracer{
 
     std::vector<Eigen::Vector2d> Lidar_sensor::generate_obs_grid(Eigen::Vector2d pos)
     {
-        grid_map::Position grid_pos = grid_map::euc_to_gridref(pos, map_size_);
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos, map_size_);
         /**
          * Generate obtacle vector. 
         **/
@@ -341,23 +350,28 @@ namespace RayTracer{
         // cout << "End Iterator" << endl; 
         return obs_grid; 
     }
-    vector<vector<Eigen::Vector2d> > Lidar_sensor::get_JPS_Path(Eigen::Vector2d& pos)
+
+    vector<vector<Eigen::Vector2d> > Lidar_sensor::get_JPS_Path(Eigen::Vector2d& pos_euc)
     {  
-        std::vector<Eigen::Vector2d> obs_grid = Lidar_sensor::generate_obs_grid(pos); 
-        vector<vector<Eigen::Vector2d> > total_path; 
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        // grid_map::Position pos_grid = pos_euc; 
+        std::vector<Eigen::Vector2d> obs_grid = Lidar_sensor::generate_obs_grid(pos_euc); 
+        vector<vector<Eigen::Vector2d> > total_path_grid; 
         grid_map::Index cur_index; 
-        belief_map_.getIndex(pos, cur_index);
+        belief_map_.getIndex(pos_grid, cur_index);
+
         grid_map::Index frontier_index; 
 
         for(int i=0; i<selected_fts_.size(); i++){
-            grid_map::Position fts_pose; fts_pose = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
-            belief_map_.getIndex(fts_pose, frontier_index);
+            grid_map::Position fts_pos_grid; fts_pos_grid = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
+            belief_map_.getIndex(fts_pos_grid, frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
-            std::vector<Eigen::Vector2d> path;
-            path = sfc.JPS_Path();
-            total_path.push_back(path);
+
+            std::vector<grid_map::Position> path_grid;
+            path_grid = sfc.JPS_Path();
+            total_path_grid.push_back(path_grid);
         }
-        return total_path;         
+        return total_path_grid;         
         //Should return the pair between frontier cell & SFC block.
     }
 

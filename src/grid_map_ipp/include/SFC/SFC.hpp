@@ -39,8 +39,8 @@ namespace Planner
 
             std::vector<Eigen::Vector2d> obs_grid; //Obstacle vector is given with respect to the grid reference frame.
         public:
-            SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index, std::vector<Eigen::Vector2d>& obs)
-            : belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index), obs_grid(obs)
+            SFC(grid_map::GridMap& map, grid_map::Index& goal_frontier, grid_map::Index& cur_index)
+            : belief_map_(map), goal_frontier_(goal_frontier), cur_index_(cur_index)
             {
                 size_ = map.getSize();
                 world_x_min = (-1.0/2.0)*size_(0,0);

@@ -19,9 +19,11 @@ class Ft_SFC(object):
         self.time = time 
         self.GP = belief 
         self.ft_num = 5 # Number of selected frontiers 
+        self.lam = 0.1 #Hyperparameter for tuning weighted cost
     
     def gen_clustered_frontier(self):
         frontiers = self.lidar.frontier_detection(self.pos)
+        # print('Frontiers', frontiers)
         clustered_frontiers = self.lidar.frontier_clustering(frontiers)
         self.clustered_fts = clustered_frontiers 
         # print(clustered_frontiers)
@@ -34,19 +36,21 @@ class Ft_SFC(object):
             self.ft_num = len(self.clustered_fts)
             self.select_fts = self.clustered_fts #Select the whole clustered frontier set 
         
+        distance_vec = self.lidar.get_ft_distance(self.pos)
         val_array = np.empty(len(self.clustered_fts))
         i = 0
         if(self.clustered_fts is not None):
+            # print(self.clustered_fts)
             for x_ft in self.clustered_fts:
                 if(self.aq_func==aq_lib.mves ):
                     #TODO: Fix the paramter setting. This leads to wrong MES acquisition function computation.
                     # maxes, locs, funcs = sample_max_vals(robot_model=sim_world, t=t, nK = 3, nFeatures = 200, visualize = False, obstacles=obslib.FreeWorld(), f_rew='mes'): 
-                    val_array[i] = self.aq_func(time = self.time, xvals = x_ft, param= (self.max_val, self.max_locs, self.target), robot_model = self.GP)
+                    val_array[i] = self.aq_func(time = self.time, xvals = x_ft, param= (self.max_val, self.max_locs, self.target), robot_model = self.GP) * np.exp(-1.0*self.lam * distance_vec[i])
                     i = i + 1
                 else:
                     # print("Value: ", self.clustered_fts)
                     # x_ft = np.array(x_ft)
-                    val_array[i] = self.aq_func(time = self.time, xvals = x_ft, robot_model = self.GP)
+                    val_array[i] = self.aq_func(time = self.time, xvals = x_ft, robot_model = self.GP) * np.exp(-1.0*self.lam * distance_vec[i])
                     i = i + 1
             #Sort clustered frontiers with respect to the evaluation values. 
             # print(val_array)
@@ -78,7 +82,6 @@ class Ft_SFC(object):
         if self.selected_fts is not None:
             self.lidar.selected_fts(self.selected_fts)
             SFC_vec = self.lidar.get_sfc(self.pos)
-            print("SFC_vec", SFC_vec)
             return SFC_vec 
         else:
             self.select_fts()

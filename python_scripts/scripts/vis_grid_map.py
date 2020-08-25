@@ -9,14 +9,16 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcoll
+import matplotlib.patches as patches
 
 class visualization():
-    def __init__(self, mapsize, resol, lidar_belief, reward_function, frontier, selected_ft, SFC, is_frontier, save):
+    def __init__(self, pos, mapsize, resol, lidar_belief, reward_function, frontier, selected_ft, SFC, is_frontier, save):
         '''
         - mapsize : Axis length of the map (m)
         - resol : Resolution of grid 
         - Lidar class(C++ binding) which contains belief map
         '''
+        self.pos = pos 
         self.mapsize = mapsize
         self.resol = resol
         self.lidar = lidar_belief 
@@ -65,8 +67,11 @@ class visualization():
         im = ax.imshow(data, cmap="gray", vmin=0, vmax=1, origin="lower")
         grid = np.arange(-self.resol/2.0, self.mapsize+1, self.resol)
 
+        plt.scatter(x=self.pos[0], y=self.pos[1], c='y', s=6)
+
         if(self.is_frontier):
             self.show_frontier()
+            self.show_SFC(ax)
         xmin, xmax, ymin, ymax = -self.resol/2.0, self.mapsize + self.resol/2.0, -self.resol/2.0, self.mapsize + self.resol/2.0
         # plt.show()
         return fig
@@ -80,8 +85,13 @@ class visualization():
             plt.scatter(x=pt[0], y=pt[1], c='b', s=3)
         
 
-    # def show_SFC(self):
-    #     for box in self.SFC:
+    def show_SFC(self, ax):
+        for box_vec in self.SFC:
+            # for box in box_vec:
+            box = box_vec[0]
+            rect = patches.Rectangle((box[0],box[1]),box[2]-box[0],box[3]-box[1],linewidth=1, edgecolor='k',facecolor='none')
+            # Add the patch to the Axes
+            ax.add_patch(rect)
 
 
         

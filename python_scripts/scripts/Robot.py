@@ -349,11 +349,12 @@ class Nonmyopic_Robot(Robot):
             ft_module = ft_sfc.Ft_SFC(ranges=self.ranges, obstacle_world=self.obstacle_World, pos=np.array([data[-1,0],data[-1,1]]), lidar=self.lidar,
                                       aq_func=self.aquisition_function, time=t, belief=self.GP) 
             selected_ft = ft_module.get_selected_frontier()
+
             print("Selected", selected_ft)
             # self.lidar.selected_fts(selected_ft)
             SFC = ft_module.gen_SFC()
             print("SFC", SFC)
-            visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
+            visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
             # visual.show(data)
             visual.visualization(t)
             

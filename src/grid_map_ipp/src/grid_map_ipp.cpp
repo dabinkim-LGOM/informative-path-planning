@@ -13,7 +13,7 @@ namespace RayTracer{
         vector<string> name;
         name.clear();
         name.push_back("base");
-        // name.push_back("SFC");
+        // name.push_back("JPS");
         vector<string> x = name;
         grid_map::GridMap map(x);
 
@@ -22,7 +22,7 @@ namespace RayTracer{
         // zero.x = 0.0; zero.y = 0.0;
         map.setGeometry(len, resol_, zero);
         map.add("base", 0.5); //Initialize map of prob. value with 0.5 (unknown)
-        // map.add("SFC", 0.5);
+        map.add("JPS", 0);
         // belief_map_ = map;
         // cout << map.getLayers().at(0) << endl;
         // cout << belief_map_.getLayers().at(0) << endl;
@@ -262,6 +262,7 @@ namespace RayTracer{
             int select = dis(gen); 
             selected_ft.push_back(clustered_frontiers.at(i).at(select));
         }
+        clustered_fts_ = selected_ft;
         return selected_ft;
     }
 
@@ -274,7 +275,7 @@ namespace RayTracer{
     void Lidar_sensor::construct_SFC(Eigen::Vector2d& pos_euc)
     {   
         grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
-        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
+        // std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
         /**
          * Generate Vector of SFCs  
         **/
@@ -284,7 +285,7 @@ namespace RayTracer{
         for(int i=0; i<selected_fts_.size(); i++){
             grid_map::Position ft_pos_gride; ft_pos_gride = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
             belief_map_.getIndex(ft_pos_gride, frontier_index);
-            Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
             // cout << "SFC Before" << endl; 
             sfc.generate_SFC();
             // cout << "Get Corridor Before" << endl; 
@@ -298,7 +299,7 @@ namespace RayTracer{
     void Lidar_sensor::construct_SFC_jwp(Eigen::Vector2d& pos_euc){
         grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
         // grid_map::Position pos_grid = pos;
-        std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
+        // std::vector<Eigen::Vector2d> obs_grid = generate_obs_grid(pos_euc);
         /**
          * Generate Vector of SFCs  
         **/
@@ -307,19 +308,25 @@ namespace RayTracer{
         grid_map::Index frontier_index; 
 
         for(int i=0; i<selected_fts_.size(); i++){
-            grid_map::Position ft_pos_gride; ft_pos_gride = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
-            belief_map_.getIndex(ft_pos_gride, frontier_index);
-            Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
+            grid_map::Position ft_pos_grid; ft_pos_grid = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
+            belief_map_.getIndex(ft_pos_grid, frontier_index);
+            // cout << "Occupancy Value At Start: " << belief_map_.at("base", cur_index) << endl; 
+            // cout << "Occupancy Value At Goal: " << belief_map_.at("base", frontier_index) << endl; 
+            auto names = belief_map_.getLayers();
+                 for(int i=0; i<names.size();i++){
+                     cout << names.at(i) << endl; 
+            }
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
 
             cout << "Start Generating..." << endl; 
             sfc.generate_SFC_jwp();
             auto cur_sfc = sfc.get_corridor_jwp();
-            cout << "Generated SFC" << endl; 
+            // cout << "Generated SFC" << endl; 
             cout << "Size of SFC: " << cur_sfc.size() << endl; 
             
-            for(int j=0; j<cur_sfc.size(); j++){    
-                cout << "x : [ " << cur_sfc[j][0] << ", " << cur_sfc[j][1] << "]" << "y: [ " << cur_sfc[j][2] << ", " << cur_sfc[j][3] << "]" << endl; 
-            }
+            // for(int j=0; j<cur_sfc.size(); j++){    
+            //     cout << "x : [ " << cur_sfc[j][0] << ", " << cur_sfc[j][2] << "]" << "y: [ " << cur_sfc[j][1] << ", " << cur_sfc[j][3] << "]" << endl; 
+            // }
             sfc_jwp_.push_back(cur_sfc);
         }
     }
@@ -363,7 +370,6 @@ namespace RayTracer{
     {  
         grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
         // grid_map::Position pos_grid = pos_euc; 
-        std::vector<Eigen::Vector2d> obs_grid = Lidar_sensor::generate_obs_grid(pos_euc); 
         vector<vector<Eigen::Vector2d> > total_path_grid; 
         grid_map::Index cur_index; 
         belief_map_.getIndex(pos_grid, cur_index);
@@ -373,7 +379,7 @@ namespace RayTracer{
         for(int i=0; i<selected_fts_.size(); i++){
             grid_map::Position fts_pos_grid; fts_pos_grid = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
             belief_map_.getIndex(fts_pos_grid, frontier_index);
-            Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
 
             std::vector<grid_map::Position> path_grid;
             path_grid = sfc.JPS_Path();
@@ -383,6 +389,44 @@ namespace RayTracer{
         //Should return the pair between frontier cell & SFC block.
     }
 
+    /**
+     * @brief Get shortest path's distance of clustered frontier points. 
+     * 
+     * @param pos_euc 
+     * @return vector<double> 
+     */
+    vector<double> Lidar_sensor::get_ft_distance(Eigen::Vector2d& pos_euc){
+        vector<double> distance_vec; 
 
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        // grid_map::Position pos_grid = pos_euc; 
+        vector<vector<Eigen::Vector2d> > path; 
+        grid_map::Index cur_index; 
+        belief_map_.getIndex(pos_grid, cur_index);
+
+        grid_map::Index frontier_index; 
+
+        for(int i=0; i<clustered_fts_.size(); i++){
+            grid_map::Position fts_pos_grid; fts_pos_grid = grid_map::euc_to_gridref(clustered_fts_.at(i), map_size_);
+            belief_map_.getIndex(fts_pos_grid, frontier_index);
+            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
+
+            std::vector<grid_map::Position> path_grid;
+            path_grid = sfc.JPS_Path();
+            path.push_back(path_grid);
+        }
+
+        // vector<vector<Eigen::Vector2d> > path = get_JPS_Path(pos_euc);
+        for(int i=0; i<path.size(); i++)
+        {
+            double distance = 0.0; 
+            for(int j=0; j<path.at(i).size()-1; j++){
+                distance = distance + ((path[i][j+1][0]- path[i][j][0])*(path[i][j+1][0]- path[i][j][0])
+                                     + (path[i][j+1][1]- path[i][j][1])*(path[i][j+1][1]- path[i][j][1]));
+            }
+            distance_vec.push_back(distance);
+        }
+        return distance_vec;
+    }
 
 }

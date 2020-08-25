@@ -39,7 +39,7 @@ Planner::Node Planner::JumpPointSearch::jump(Node &new_point, Node &motion, int 
     next_point.pid_ = id;
     next_point.h_cost_ = abs(next_point.idx_(0,0) - goal_.idx_(0,0)) + abs(next_point.idx_(1,0) - goal_.idx_(1,0));
     if (next_point.idx_(0,0) < 0 || next_point.idx_(1,0) < 0 || next_point.idx_(0,0) >= dimx || next_point.idx_(1,0) >= dimy ||
-        grid.at("base", next_point.idx_) != 0) {
+        grid.at("JPS", next_point.idx_) != 0) {
         return new_point;
         // return Node(-1,-1,-1,-1,-1,-1);
     }
@@ -76,15 +76,15 @@ bool Planner::JumpPointSearch::has_forced_neighbours(Node &new_point, Node &next
     grid_map::Index a_idx(cn1x, cn1y);
     grid_map::Index b_idx(nn1x, nn1y);
 
-    bool a = !(cn1x < 0 || cn1y < 0 || cn1x >= dimx || cn1y >= dimy || grid.at("base", a_idx) == 1);
-    bool b = !(nn1x < 0 || nn1y < 0 || nn1x >= dimx || nn1y >= dimy || grid.at("base", b_idx) == 1);
+    bool a = !(cn1x < 0 || cn1y < 0 || cn1x >= dimx || cn1y >= dimy || grid.at("JPS", a_idx) == 1);
+    bool b = !(nn1x < 0 || nn1y < 0 || nn1x >= dimx || nn1y >= dimy || grid.at("JPS", b_idx) == 1);
     if (a != b) return true;
     
     grid_map::Index c(cn2x, cn2y);
     grid_map::Index d(nn2x, nn2y);
     
-    a = !(cn2x < 0 || cn2y < 0 || cn2x >= dimx || cn2y >= dimy || grid.at("base", c) == 1);
-    b = !(nn2x < 0 || nn2y < 0 || nn2x >= dimx || nn2y >= dimy || grid.at("base", d) == 1);
+    a = !(cn2x < 0 || cn2y < 0 || cn2x >= dimx || cn2y >= dimy || grid.at("JPS", c) == 1);
+    b = !(nn2x < 0 || nn2y < 0 || nn2x >= dimx || nn2y >= dimy || grid.at("JPS", d) == 1);
     if (a != b) return true;
 
     return false;
@@ -160,13 +160,13 @@ Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_
             if (current.idx_(0,0) == goal_.idx_(0,0) && current.idx_(1,0) == goal_.idx_(1,0)) {
                 // std::cout << "Hey1.1" << std::endl;
                 closed_list_.push_back(current);
-                grid.at("base", current.idx_) = 2;
+                grid.at("JPS", current.idx_) = 2;
                 // backtracking(current);
                 // std::cout << "Hey1.2" << std::endl;
                 return closed_list_;
             }
             // std::cout << "Hey2" << std::endl; 
-            grid.at("base", current.idx_) = 2; // Point opened
+            grid.at("JPS", current.idx_) = 2; // Point opened
             int current_cost = current.cost_;
             for (auto it = motion.begin(); it != motion.end(); ++it) {
                 // std::cout << "Hey3" << std::endl; 
@@ -181,7 +181,7 @@ Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_
                 }
                 if (new_point.idx_(0,0) < 0 || new_point.idx_(1,0) < 0 || new_point.idx_(0,0) >= dimx || new_point.idx_(1,0) >= dimy)
                     continue; // Check boundaries
-                if (grid.at("base", new_point.idx_) != 0) {
+                if (grid.at("JPS", new_point.idx_) != 0) {
                     continue; //obstacle or visited
                 }
                 // std::cout << "Hey4" << std::endl; 
@@ -191,7 +191,7 @@ Planner::JumpPointSearch::jump_point_search(grid_map::GridMap &grid, Node start_
                     if (jump_point.idx_(0,0) == goal_.idx_(0,0) && jump_point.idx_(1,0) == goal_.idx_(1,0)) {
                         closed_list_.push_back(current);
                         closed_list_.push_back(jump_point);
-                        grid.at("base", jump_point.idx_) = 2;
+                        grid.at("JPS", jump_point.idx_) = 2;
                         // backtracking(jump_point);
                         return closed_list_;
                     }

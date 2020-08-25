@@ -5,6 +5,7 @@
 #include "grid_map_core/iterators/iterators.hpp"
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
 #include "grid_map_ipp/wavefront_frontier_detection.hpp"
+#include "grid_map_ipp/util.hpp"
 // #include "grid_map_ipp/util.hpp"
 #include <algorithm>
 #include "SFC/SFC.hpp"
@@ -75,6 +76,8 @@ namespace RayTracer{
 
             double ft_cluster_r_ = 7.0;
             vector<Eigen::Vector2d> selected_fts_; //euc reference frame
+            vector<Eigen::Vector2d> clustered_fts_; //euc reference frame
+            
             
             std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
             Eigen::Vector2d submap_length_; //Submap length for local path optimization 
@@ -88,6 +91,10 @@ namespace RayTracer{
              , resol_(resol), raytracer_(raytracer)
              {
                  belief_map_ = init_belief_map();
+                 auto names = belief_map_.getLayers();
+                 for(int i=0; i<names.size();i++){
+                     cout << names.at(i) << endl; 
+                 }
                  map_size_ = belief_map_.getSize();
                  obstacles_.clear();
                  submap_length_ << 20.0, 20.0;
@@ -145,6 +152,8 @@ namespace RayTracer{
                 //     // std::cout << selected_fts_.at(i) << std::endl; 
                 // }
             }
+            vector<double> get_ft_distance(Eigen::Vector2d& pos_euc);
+
 
             //Construct SFC based on frontiers
             void construct_SFC(Eigen::Vector2d& pos);
@@ -162,6 +171,24 @@ namespace RayTracer{
                 
                 return sfc_jwp_;
             }
+
+            //Transform SFC boxes into Cartesian reference frame
+            Cor_vec return_SFC_jwp_python(Eigen::Vector2d& pos){
+                sfc_jwp_.clear();
+                if(sfc_jwp_.empty()){
+                    std::cout << "Hello?" << std::endl; 
+                    construct_SFC_jwp(pos);
+                }
+                // std::cout << "SFC Size: " << sfc_jwp_.at(0).size() << std::endl; 
+                // sfc_jwp_ = grid_map::gridbox_to_eucbox(sfc_jwp_, map_size_);
+                for(int i=0; i<sfc_jwp_.size(); i++){
+                    for(int j=0; j<sfc_jwp_.at(i).size(); j++){
+                        sfc_jwp_.at(i).at(j) = grid_map::gridbox_to_eucbox(sfc_jwp_.at(i).at(j), map_size_);
+                    }
+                } 
+                return sfc_jwp_;
+            }
+
             Cor_vec get_SFC_jwp(){
                 
                 return sfc_jwp_;

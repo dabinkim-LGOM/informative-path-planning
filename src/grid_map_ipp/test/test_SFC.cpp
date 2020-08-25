@@ -178,7 +178,7 @@ int main(int argc, char** argv)
     //         // gt_map.getPosition(idx, pos);
 
     //         geometry_msgs::Point pt; 
-    //         pt.x = grid_pos(0,0); pt.y = grid_pos(1,0); pt.z = 0.0;
+    //         pt.x = grid_pos(0,0); pt.y = gri     d_pos(1,0); pt.z = 0.0;
     //         // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
             
     //         visualization_msgs::Marker marker = generate_marker(pt, 0.0, 0.0, num, r, 0.0, 1-r);

@@ -305,13 +305,21 @@ namespace RayTracer{
         grid_map::Index cur_index; 
         belief_map_.getIndex(pos_grid, cur_index);
         grid_map::Index frontier_index; 
+
         for(int i=0; i<selected_fts_.size(); i++){
             grid_map::Position ft_pos_gride; ft_pos_gride = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
             belief_map_.getIndex(ft_pos_gride, frontier_index);
             Planner::SFC sfc(belief_map_, frontier_index, cur_index, obs_grid);
 
+            cout << "Start Generating..." << endl; 
             sfc.generate_SFC_jwp();
             auto cur_sfc = sfc.get_corridor_jwp();
+            cout << "Generated SFC" << endl; 
+            cout << "Size of SFC: " << cur_sfc.size() << endl; 
+            
+            for(int j=0; j<cur_sfc.size(); j++){    
+                cout << "x : [ " << cur_sfc[j][0] << ", " << cur_sfc[j][1] << "]" << "y: [ " << cur_sfc[j][2] << ", " << cur_sfc[j][3] << "]" << endl; 
+            }
             sfc_jwp_.push_back(cur_sfc);
         }
     }

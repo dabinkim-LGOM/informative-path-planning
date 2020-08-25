@@ -104,21 +104,8 @@ void Planner::SFC::generate_SFC_jwp()
 
     cout << "RECON_JPS_PATH" << endl; 
     for(int i=0; i<recon_jps_path.size(); i++){
-        // cout << i <<"-th JPS Path" << endl; 
-        // for(int j=0; j<jps_path.at(i).size(); j++){
             cout << recon_jps_path.at(i).transpose() << endl; 
-        // }
     }
-
-    // Set obstacles
-    //Transform obs -> obstacles 
-    // vector<Eigen::Vector2d> obstacles;
-    // Eigen::Vector2d cur_obstacle;
-    // for(int i=0; i<obs_grid.size(); i++){
-    //     cur_obstacle(0,0) = (obs_grid.at(i))(0,0);
-    //     cur_obstacle(1,0) = (obs_grid.at(i))(1,0);
-    //     obstacles.push_back(cur_obstacle);
-    // }
     
     bool gen_box = updateObsBox(recon_jps_path);
 
@@ -178,28 +165,28 @@ std::vector<double> Planner::SFC::expand_box(std::vector<double> &box, double ma
 
                 //expand cand_box and get updated part of box(update_box)
                 if (axis < 2) {
-                    // box_update[axis + 2] = box_cand[axis];
+                    box_update[axis + 2] = box_cand[axis];
                     box_cand[axis] = box_cand[axis] - box_xy_res;
                     box_update[axis] = box_cand[axis];
-                    cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
-                    if(isObstacleInBox(box_update, margin))
-                        cout << "OBSTACLE IN BOX" << endl; 
-                    if(!isBoxInBoundary(box_update))
-                        cout << "BOX IN BOUNDARY" << endl; 
+                    // cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
+                    // if(isObstacleInBox(box_update, margin))
+                    //     cout << "OBSTACLE IN BOX" << endl; 
+                    // if(!isBoxInBoundary(box_update))
+                    //     cout << "BOX IN BOUNDARY" << endl; 
                 } else {
-                    // box_update[axis - 2] = box_cand[axis];
+                    box_update[axis - 2] = box_cand[axis];
                     box_cand[axis] = box_cand[axis] + box_xy_res;
                     box_update[axis] = box_cand[axis];
-                    cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
-                    if(isObstacleInBox(box_update, margin))
-                        cout << "OBSTACLE IN BOX" << endl; 
-                    if(!isBoxInBoundary(box_update))
-                        cout << "BOX IN BOUNDARY" << endl; 
+                    // cout << "AXIS: " << axis << " Val: " << box_update[axis] << endl; 
+                    // if(isObstacleInBox(box_update, margin))
+                    //     cout << "OBSTACLE IN BOX" << endl; 
+                    // if(!isBoxInBoundary(box_update))
+                    //     cout << "BOX IN BOUNDARY" << endl; 
                 }
 
             }
 
-            axis_cand.erase(axis_cand.begin());
+            axis_cand.erase(axis_cand.begin()+i);
             if (i > 0) {
                 i--;
             } else {
@@ -224,9 +211,9 @@ bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
         auto state = initTraj[i];
         double x = state(0,0);
         double y = state(1,0);
-        cout << "STATE: " << i << " " <<  state.transpose() << endl; 
-        if(i+1==initTraj.size()-1)
-            cout << "STATE: " << i+1 << " " <<  initTraj[i+1].transpose() << endl; 
+        // cout << "STATE: " << i << " " <<  state.transpose() << endl; 
+        // if(i+1==initTraj.size()-1)
+            // cout << "STATE: " << i+1 << " " <<  initTraj[i+1].transpose() << endl; 
         
         std::vector<double> box;
         auto state_next = initTraj[i + 1];
@@ -253,6 +240,7 @@ bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
         }
         box = expand_box(box, margin_);
 
+        cout <<"[BOX] x : [ " << box[0] << ", " << box[2] << "]" << "y: [ " << box[1] << ", " << box[3] << "]" << endl; 
         Corridor_jwp_.emplace_back(box);
 
         box_prev = box;

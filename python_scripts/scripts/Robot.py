@@ -25,6 +25,7 @@ import Path_Generator as pg
 import grid_map_ipp_module as grid 
 import vis_grid_map as vis 
 import GridMap_library as sdf
+import Frontier_SFC as ft_sfc 
 
 
 class Robot:
@@ -345,7 +346,14 @@ class Nonmyopic_Robot(Robot):
 
             self.trajectory.append(best_path)
 
-            visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, True, True)
+            ft_module = ft_sfc.Ft_SFC(ranges=self.ranges, obstacle_world=self.obstacle_World, pos=np.array([data[-1,0],data[-1,1]]), lidar=self.lidar,
+                                      aq_func=self.aquisition_function, time=t, belief=self.GP) 
+            selected_ft = ft_module.get_selected_frontier()
+            print("Selected", selected_ft)
+            # self.lidar.selected_fts(selected_ft)
+            SFC = ft_module.gen_SFC()
+            print("SFC", SFC)
+            visual = vis.visualization(self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
             # visual.show(data)
             visual.visualization(t)
             
@@ -411,10 +419,10 @@ class Nonmyopic_Robot(Robot):
             x,y = obs.exterior.xy
             ax.plot(x,y)
         
-        if not os.path.exists('../figures/nonmyopic/' + self.f_rew +'/GP'):
-            os.makedirs('../figures/nonmyopic/' + self.f_rew +'/GP')
+        if not os.path.exists('./figures/nonmyopic/' + self.f_rew +'/GP'):
+            os.makedirs('./figures/nonmyopic/' + self.f_rew +'/GP')
 
         if rob_mod.xvals is not None:
             scatter = ax.scatter(rob_mod.xvals[:, 0], rob_mod.xvals[:, 1], c='k', s = 20.0, cmap = 'viridis')
-            fig.savefig('../figures/nonmyopic/' + self.f_rew +'/GP/' + str(t) + '.png')
+            fig.savefig('./figures/nonmyopic/' + self.f_rew +'/GP/' + str(t) + '.png')
         plt.close()

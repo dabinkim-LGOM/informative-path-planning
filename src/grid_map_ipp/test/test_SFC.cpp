@@ -256,7 +256,7 @@ int main(int argc, char** argv)
         }
 
         for(int i=0; i<sfc_vis_vec.size(); i++){
-            pub_vis_sfc.publish(sfc_vis_vec.at(2));
+            pub_vis_sfc.publish(sfc_vis_vec.at(0));
         }
         // poly_pub.publish(poly_msg);
         rate.sleep();    

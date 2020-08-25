@@ -35,7 +35,7 @@ namespace Planner
             vec_E<Polyhedron<2>> Corridor_;
             cor_type Corridor_jwp_;
             double margin_ = -0.5;
-            double SP_EPSILON = 1.0;
+            double SP_EPSILON = 0.0;
 
             std::vector<Eigen::Vector2d> obs_grid; //Obstacle vector is given with respect to the grid reference frame.
         public:
@@ -48,13 +48,14 @@ namespace Planner
                 world_y_min = (-1.0/2.0)*size_(1,0);
                 world_y_max = (1.0/2.0)*size_(1,0);
                 box_xy_res = map.getResolution();
-                cout << "X MIN: " << world_x_min << endl; 
-                cout << "X MAX: " << world_x_max << endl; 
-                cout << "Y MIN: " << world_y_min << endl; 
-                cout << "Y MAX: " << world_y_max << endl; 
+                // cout << "X MIN: " << world_x_min << endl; 
+                // cout << "X MAX: " << world_x_max << endl; 
+                // cout << "Y MIN: " << world_y_min << endl; 
+                // cout << "Y MAX: " << world_y_max << endl; 
                 
                 // cout << "BOX RES" << box_xy_res << endl; 
             }
+            ~SFC(){}
 
             vec_E<Polyhedron<2>> generate_SFC();
             void generate_SFC_jwp();

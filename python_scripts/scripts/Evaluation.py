@@ -59,8 +59,12 @@ class Evaluation:
     def mean_reward(self, time, xvals, robot_model):
         ''' Predcited mean (true) reward function'''
         data = np.array(xvals)
-        x1 = data[:,0]
-        x2 = data[:,1]
+        if data.shape==(2,):
+            x1 = data[0]
+            x2 = data[1]
+        else:
+            x1 = data[:,0]
+            x2 = data[:,1]
         queries = np.vstack([x1, x2]).T   
         
         mu, var = self.world.GP.predict_value(queries)
@@ -71,8 +75,12 @@ class Evaluation:
         ''' The reward information gathered plus the exploitation value gathered'''    
         LAMBDA = 0.5
         data = np.array(xvals)
-        x1 = data[:,0]
-        x2 = data[:,1]
+        if data.shape==(2,):
+            x1 = data[0]
+            x2 = data[1]
+        else:
+            x1 = data[:,0]
+            x2 = data[:,1]
         queries = np.vstack([x1, x2]).T   
         
         mu, var = self.world.GP.predict_value(queries)    
@@ -239,8 +247,12 @@ def info_gain(time, xvals, robot_model):
     ''' Compute the information gain of a set of potential sample locations with respect to the underlying fucntion
         conditioned or previous samples xobs'''        
     data = np.array(xvals)
-    x1 = data[:,0]
-    x2 = data[:,1]
+    if data.shape==(2,):
+        x1 = data[0]
+        x2 = data[1]
+    else:
+        x1 = data[:,0]
+        x2 = data[:,1]
     queries = np.vstack([x1, x2]).T   
     xobs = robot_model.xvals
 
@@ -283,8 +295,12 @@ def info_gain(time, xvals, robot_model):
 def mean_UCB(time, xvals, robot_model):
     ''' Computes the UCB for a set of points along a trajectory '''
     data = np.array(xvals)
-    x1 = data[:,0]
-    x2 = data[:,1]
+    if data.shape==(2,):
+        x1 = data[0]
+        x2 = data[1]
+    else:
+        x1 = data[:,0]
+        x2 = data[:,1]
     queries = np.vstack([x1, x2]).T   
                               
     # The GPy interface can predict mean and variance at an array of points; this will be an overestimate
@@ -300,8 +316,12 @@ def mean_UCB(time, xvals, robot_model):
 def hotspot_info_UCB(time, xvals, robot_model):
     ''' The reward information gathered plus the exploitation value gathered'''
     data = np.array(xvals)
-    x1 = data[:,0]
-    x2 = data[:,1]
+    if data.shape==(2,):
+        x1 = data[0]
+        x2 = data[1]
+    else:
+        x1 = data[:,0]
+        x2 = data[:,1]
     queries = np.vstack([x1, x2]).T   
                               
     LAMBDA = 0.5

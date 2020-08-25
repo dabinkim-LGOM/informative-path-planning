@@ -73,7 +73,7 @@ namespace RayTracer{
             Raytracer raytracer_;
             string layer_;
 
-            double ft_cluster_r_ = 5.0;
+            double ft_cluster_r_ = 7.0;
             vector<Eigen::Vector2d> selected_fts_; //euc reference frame
             
             std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
@@ -131,15 +131,19 @@ namespace RayTracer{
             }
             
 
-            //Frontier Detector, Return frontier voxels as position(conventional coordinate); 
+            //Frontier Detector, Return frontier voxels as position(euclidean coordinate); 
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
             //Return center position(euc ref) of each cluster. 
             vector<Eigen::Vector2d>  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
             
             //By acquisiton functions of frontier points, Python module selects frontier values to generate SFC. 
+            //Input frontiers should not be transformed. 
             void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
-            {
+            {   
                 selected_fts_ = selected_fts;
+                // for(int i=0; i< selected_fts_.size(); i++){
+                //     // std::cout << selected_fts_.at(i) << std::endl; 
+                // }
             }
 
             //Construct SFC based on frontiers
@@ -148,7 +152,18 @@ namespace RayTracer{
                 return sfc_ft_pair_;
             }
             void construct_SFC_jwp(Eigen::Vector2d& pos);
+            Cor_vec return_SFC_jwp(Eigen::Vector2d& pos){
+                sfc_jwp_.clear();
+                if(sfc_jwp_.empty()){
+                    std::cout << "Hello?" << std::endl; 
+                    construct_SFC_jwp(pos);
+                }
+                // std::cout << "SFC Size: " << sfc_jwp_.at(0).size() << std::endl; 
+                
+                return sfc_jwp_;
+            }
             Cor_vec get_SFC_jwp(){
+                
                 return sfc_jwp_;
             }
 

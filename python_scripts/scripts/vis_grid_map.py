@@ -11,7 +11,7 @@ import matplotlib.colors as mcolors
 import matplotlib.collections as mcoll
 
 class visualization():
-    def __init__(self, mapsize, resol, lidar_belief, reward_function, frontier, is_frontier, save):
+    def __init__(self, mapsize, resol, lidar_belief, reward_function, frontier, selected_ft, SFC, is_frontier, save):
         '''
         - mapsize : Axis length of the map (m)
         - resol : Resolution of grid 
@@ -22,8 +22,10 @@ class visualization():
         self.lidar = lidar_belief 
         self.save = save #Bool value
         self.reward_function = reward_function
-        self.frontier = frontier
+        self.all_frontier = frontier
+        self.selected_ft = selected_ft 
         self.is_frontier = is_frontier
+        self.SFC = SFC 
 
     def visualization(self, t):
         data = self.iterator()
@@ -70,11 +72,16 @@ class visualization():
         return fig
         
     def show_frontier(self):
-        for pt in self.frontier:
-            print('x=', pt[0], 'y=', pt[1])
+        for pt in self.all_frontier:
+            # print('x=', pt[0], 'y=', pt[1])
             plt.scatter(x=pt[0], y=pt[1], c='r', s=3)
+        for pt in self.selected_ft:
+            # print('x=', pt[0], 'y=', pt[1])
+            plt.scatter(x=pt[0], y=pt[1], c='b', s=3)
         
 
+    # def show_SFC(self):
+    #     for box in self.SFC:
 
 
         

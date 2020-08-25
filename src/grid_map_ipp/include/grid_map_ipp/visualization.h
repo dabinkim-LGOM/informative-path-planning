@@ -110,6 +110,7 @@ visualization_msgs::Marker generate_text_marker(geometry_msgs::Point pt, double 
         marker.scale.x = box_vec[i][2] - box_vec[i][0];
         marker.scale.y = box_vec[i][3] - box_vec[i][1];
         marker.scale.z = 1.0;
+        marker.id = i;
         // marker.text =  to_string(corridor.t_start) + "-"+to_string(corridor.t_end);
         marker_array.markers.emplace_back(marker);
     }

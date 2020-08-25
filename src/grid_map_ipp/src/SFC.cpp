@@ -33,13 +33,13 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC()
 
     // Set obstacles
     //Transform obs -> obstacles 
-    vec_Vec2f obstacles;
-    Vec2f cur_obstacle;
-    for(int i=0; i<obs_grid.size(); i++){
-        cur_obstacle(0,0) = (float) (obs_grid.at(i))(0,0);
-        cur_obstacle(1,0) = (float) (obs_grid.at(i))(1,0);
-        obstacles.push_back(cur_obstacle);
-    }
+    // vec_Vec2f obstacles;
+    // Vec2f cur_obstacle;
+    // for(int i=0; i<obs_grid.size(); i++){
+    //     cur_obstacle(0,0) = (float) (obs_grid.at(i))(0,0);
+    //     cur_obstacle(1,0) = (float) (obs_grid.at(i))(1,0);
+    //     obstacles.push_back(cur_obstacle);
+    // }
 
 
     // How to get obstacle data of submap?  
@@ -61,7 +61,7 @@ vec_E<Polyhedron<2>> Planner::SFC::generate_SFC()
 
     // Initialize SeedDecomp2D
     EllipsoidDecomp2D decomp(origin, range);
-    decomp.set_obs(obstacles);
+    // decomp.set_obs(obstacles);
     decomp.set_local_bbox(Vec2f(2, 2));
     decomp.dilate(recon_jps_path, 0.0);
     
@@ -102,10 +102,10 @@ void Planner::SFC::generate_SFC_jwp()
     // }
     recon_jps_path = JPS_Path();
 
-    cout << "RECON_JPS_PATH" << endl; 
-    for(int i=0; i<recon_jps_path.size(); i++){
-            cout << recon_jps_path.at(i).transpose() << endl; 
-    }
+    // cout << "RECON_JPS_PATH" << endl; 
+    // for(int i=0; i<recon_jps_path.size(); i++){
+    //         cout << recon_jps_path.at(i).transpose() << endl; 
+    // }
     
     bool gen_box = updateObsBox(recon_jps_path);
 
@@ -204,6 +204,25 @@ std::vector<double> Planner::SFC::expand_box(std::vector<double> &box, double ma
 bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
     double x_next, y_next, dx, dy;
 
+    // //Reduce initTraj's size. (Prune redundant path)
+    // Eigen::Vector2d tmp_grad(0,0);
+    // Eigen::Vector2d next_grad(0,0);
+    // for(int i=0; i<initTraj.size();i++){
+    //     tmp_grad = initTraj[i+1] - initTraj[i]; tmp_grad = tmp_grad/(tmp_grad.squaredNorm());
+    //     next_grad = initTraj[i+2] - initTraj[i+1]; next_grad = next_grad/(next_grad.squaredNorm());
+    //     if(tmp_grad[0] ==next_grad[0] && tmp_grad[1] == next_grad[1]){
+    //         initTraj.erase(initTraj.begin()+(i+1));
+    //         i--;
+    //     }
+    //     if(i==initTraj.size()-1)
+    //         break; 
+    // }
+    cout << "RECON_JPS_PATH" << endl; 
+    for(int i=0; i<initTraj.size(); i++){
+            cout << initTraj.at(i).transpose() << endl; 
+    }
+
+
     std::vector<double> box_prev{0, 0, 0, 0};
 
 
@@ -293,7 +312,7 @@ bool Planner::SFC::isObstacleInBox(const std::vector<double> &box, double margin
                 if(cur_idx(0,0)>=(belief_map_.getSize())(0,0) || cur_idx(1,0)>=(belief_map_.getSize())(1,0)
                     || cur_idx(0,0)<0 || cur_idx(1,0)<0)
                     return true; 
-                if(belief_map_.at("base", cur_idx) > 0.35){
+                if(belief_map_.at("base", cur_idx) > 0.15){
                     return true; 
                 }
                 // float dist = distmap_obj.get()->getDistance(cur_point);

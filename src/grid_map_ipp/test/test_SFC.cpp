@@ -57,6 +57,7 @@ int main(int argc, char** argv)
     //ObstacleGridConverter : Conventional x, y coordinate 
     grid_map::ObstacleGridConverter converter(100.0, 100.0, 5, obstacles);
     grid_map::GridMap gt_map = converter.GridMapConverter();
+    gt_map.add("JPS", 0);
 
     
     for(int i=0; i< 50; i++){
@@ -104,9 +105,9 @@ int main(int argc, char** argv)
     selected_ft.push_back(frontier_pos.back());
     lidar.set_selected_frontier(selected_ft);
     
-    lidar.construct_SFC(cur_pos);
+    // lidar.construct_SFC(cur_pos);
 
-    std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > corridor_pair_vec = lidar.get_SFC();
+    // std::vector<std::pair<vec_E<Polyhedron<2>>, Eigen::Vector2d> > corridor_pair_vec = lidar.get_SFC();
     std::vector<std::vector<Eigen::Vector2d> > jps_path = lidar.get_JPS_Path(cur_pos);
     cout << "JPS_PATH" << endl; 
     for(int i=0; i<jps_path.size(); i++){

@@ -19,7 +19,7 @@ class Ft_SFC(object):
         self.time = time 
         self.GP = belief 
         self.ft_num = 5 # Number of selected frontiers 
-        self.lam = 0.1 #Hyperparameter for tuning weighted cost
+        self.lam = 0.01 #Hyperparameter for tuning weighted cost
     
     def gen_clustered_frontier(self):
         frontiers = self.lidar.frontier_detection(self.pos)
@@ -53,7 +53,7 @@ class Ft_SFC(object):
                     val_array[i] = self.aq_func(time = self.time, xvals = x_ft, robot_model = self.GP) * np.exp(-1.0*self.lam * distance_vec[i])
                     i = i + 1
             #Sort clustered frontiers with respect to the evaluation values. 
-            # print(val_array)
+            print(val_array)
             val_array, self.clustered_fts = (list(t) for t in zip(*sorted(zip(val_array, self.clustered_fts))))
             self.selected_fts = self.clustered_fts[0:self.ft_num]
             # print("Selection Called")

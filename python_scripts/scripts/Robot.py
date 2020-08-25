@@ -306,12 +306,12 @@ class Nonmyopic_Robot(Robot):
         ''' Use a monte carlo tree search in order to perform long-horizon planning'''
         
         self.trajectory = []
-                 
+        SFC = None 
         for t in xrange(T):
             #computation_budget, belief, initial_pose, planning_limit, frontier_size, path_generator, aquisition_function, time
             # FIXME MCTS
             mcts = MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.roll_length, self.fs, 
-                        self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step, self.lidar)
+                        self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step, self.lidar, SFC)
             best_path, cost = mcts.get_actions()
 
             # mcts = mc_lib.cMCTS(self.comp_budget, self.GP, self.loc, self.roll_length, self.path_generator, self.aquisition_function, self.f_rew, t, None, False, 'dpw')
@@ -340,8 +340,8 @@ class Nonmyopic_Robot(Robot):
 
             # print(np.array([data[-1,0],data[-1,1]]))
             frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
-            print("Frontier test")
-            print("Data", np.array([data[-1,0],data[-1,1]]))
+            # print("Frontier test")
+            # print("Data", np.array([data[-1,0],data[-1,1]]))
             # print(frontier_set)
 
             self.trajectory.append(best_path)
@@ -350,10 +350,10 @@ class Nonmyopic_Robot(Robot):
                                       aq_func=self.aquisition_function, time=t, belief=self.GP) 
             selected_ft = ft_module.get_selected_frontier()
 
-            print("Selected", selected_ft)
+            # print("Selected", selected_ft)
             # self.lidar.selected_fts(selected_ft)
             SFC = ft_module.gen_SFC()
-            print("SFC", SFC)
+            # print("SFC", SFC)
             visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
             # visual.show(data)
             visual.visualization(t)

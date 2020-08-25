@@ -27,7 +27,7 @@ import GridMap_library as sdflib
 class MCTS():
     '''Class that establishes a MCTS for nonmyopic planning'''
     def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, planning_limit, frontier_size,
-                path_generator, aquisition_function, time, gradient_on, grad_step, lidar):
+                path_generator, aquisition_function, time, gradient_on, grad_step, lidar, SFC):
         '''Initialize with constraints for the planning, including whether there is 
            a budget or planning horizon
            budget - length, time, etc to consider
@@ -50,6 +50,7 @@ class MCTS():
         self.grad_step = grad_step
         self.lidar = lidar
         self.sdf_map = None
+        self.SFC = SFC #SFC Bounding box for optimization 
 
     def get_actions(self):
 

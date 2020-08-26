@@ -358,12 +358,12 @@ class Node(object):
         self.children.append(child_node)
     
     def print_self(self):
-        print self.name
+        print(self.name)
 
 class Tree(object):
     def __init__(self, f_rew, f_aqu,  belief, pose, path_generator, t, depth, param, c):
         self.path_generator = path_generator
-        self.max_depth = depth
+        self.max_depth = depth #Maximum rollout depth?
         self.param = param
         self.t = t
         self.f_rew = f_rew
@@ -461,6 +461,7 @@ class Tree(object):
                     #print "number quieres:", nqueries
                     child = random.choice(current_node.children)
                     nqueries = [node.nqueries for node in current_node.children]
+                    #select node which has the minimum queuried number & random if ties 
                     child = random.choice([node for node in current_node.children if node.nqueries == min(nqueries)])
 
                     if True:
@@ -481,13 +482,14 @@ class Tree(object):
 
                 # print(xobs)
                 # print(type(zobs))
-                belief.add_data(xobs, zobs)
+                belief.add_data(xobs, zobs) # Work as continuous observation 
+
             else:
                 zobs = belief.posterior_samples(xobs, full_cov = False, size = 1)
                 n_points, input_dim = xobs.shape
                 zobs = np.reshape(zobs, (n_points,1))
 
-            belief.add_data(xobs, zobs)
+            belief.add_data(xobs, zobs) #If we add tree's belief the new query points, it means it is continuous-observation case. 
             pose_new = current_node.dense_path[-1]
             child = Node(pose = pose_new, 
                          parent = current_node, 
@@ -509,8 +511,8 @@ class Tree(object):
             #print "Considering child:", child.name, "with queries:", child.nqueries
             if child.nqueries == 0:
                 return child
-            vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
-            #vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
+            # vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
+            vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
         # Return the max node, or a random node if the value is equal
         return random.choice([key for key in vals.keys() if vals[key] == max(vals.values())])
         
@@ -521,7 +523,7 @@ class Tree(object):
         # actions = self.path_generator.get_path_set(parent.pose)
         # dense_paths = [0]
         if len(actions) == 0:
-            print "No actions!", 
+            print("No actions!")
             return
         
         #print "Creating children for:", parent.name
@@ -584,28 +586,28 @@ class cMCTS(MCTS):
             self.c = 1.0
         print "Setting c to :", self.c
 
-    def choose_trajectory(self, t):
+    def choose_trajectory(self):
         #Main function loop which makes the tree and selects the best child
         #Output: path to take, cost of that path
 
         # randomly sample the world for entropy search function
         if self.f_rew == 'mes':
-            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t = t, visualize=True)
+            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t = self.t, visualize=True)
             param = (self.max_val, self.max_locs, self.target)
             print("Hello")
         elif self.f_rew == 'exp_improve':
             param = [self.current_max]
         elif self.f_rew == 'naive' or self.f_rew == 'naive_value':
-            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t=t, nK=int(self.aq_param[0]), visualize=True, f_rew=self.f_rew)
+            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t= self.t, nK=int(self.aq_param[0]), visualize=True, f_rew=self.f_rew)
             param = ((self.max_val, self.max_locs, self.target), self.aq_param[1])
         else:
             param = None
 
         # initialize tree
         if self.tree_type == 'dpw':
-            self.tree = Tree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
-        elif self.tree_type == 'belief':
-            self.tree = BeliefTree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
+            self.tree = Tree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, self.t, depth = self.rl, param = param, c = self.c)
+        # elif self.tree_type == 'belief':
+            # self.tree = BeliefTree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
         else:
             raise ValueError('Tree type must be one of either \'dpw\' or \'belief\'')
         #self.tree.get_next_leaf()
@@ -628,8 +630,8 @@ class cMCTS(MCTS):
 
         print [(node.nqueries, node.reward/(node.nqueries+0.1)) for node in self.tree.root.children]
 
-        # best_child = self.tree.root.children[np.argmax([node.nqueries for node in self.tree.root.children])]
-        best_child = random.choice([node for node in self.tree.root.children if node.nqueries == max([n.nqueries for n in self.tree.root.children])])
+        best_child = self.tree.root.children[np.argmax([node.nqueries for node in self.tree.root.children])]
+        # best_child = random.choice([node for node in self.tree.root.children if node.nqueries == max([n.nqueries for n in self.tree.root.children])])
         all_vals = {}
         for i, child in enumerate(self.tree.root.children):
             all_vals[i] = child.reward / (float(child.nqueries)+0.1)

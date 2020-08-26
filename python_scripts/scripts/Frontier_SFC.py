@@ -19,7 +19,7 @@ class Ft_SFC(object):
         self.time = time 
         self.GP = belief 
         self.ft_num = 5 # Number of selected frontiers 
-        self.lam = 0.01 #Hyperparameter for tuning weighted cost
+        self.lam = 0.05 #Hyperparameter for tuning weighted cost
     
     def gen_clustered_frontier(self):
         frontiers = self.lidar.frontier_detection(self.pos)

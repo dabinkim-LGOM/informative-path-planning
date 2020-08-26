@@ -44,6 +44,7 @@ class MCTS():
         # self.default_path_generator = Path_Generator(frontier_size, )
         self.spent = 0
         self.tree = None
+        self.c = 0.1 #Parameter for UCT function 
         self.aquisition_function = aquisition_function
         self.t = time
         self.gradient_on = gradient_on
@@ -80,19 +81,16 @@ class MCTS():
             # if(len(self.tree[sequence[0]])==4):
             #     self.tree[sequence[0]] = (self.tree[sequence[0]][0],self.tree[sequence[0]][1], self.tree[sequence[0]][2], self.tree[sequence[0]][3], value_grad )
             
-            self.update_tree(reward, sequence, value_grad)
+            self.backprop(reward, sequence, value_grad)
             ###TODO: After Finish Build functions for update
             # if(self.gradient_on):
             #     self.update_action(reward, sequence, None)
             # else:
-            #     self.update_tree(reward, sequence, value_grad)
+            #     self.backprop(reward, sequence, value_grad)
             
-        # print(self.tree)
         # self.visualize_tree()
         best_sequence, cost = self.get_best_child()
-        # print("best_sequence: ")
-        # print(best_sequence)
-        # print(self.tree[best_sequence])
+
 
         # update_ver = self.update_action(self.tree[best_sequence])
         if(self.gradient_on == True):
@@ -103,6 +101,7 @@ class MCTS():
 
     '''
     Make sure update position does not go out of the ranges
+    Change best sequence into gradient-updated position 
     '''
     def update_action(self,best_sequence):
         grad_val = best_sequence[-1][:]
@@ -131,20 +130,21 @@ class MCTS():
 
         best_sequence[0][-1] = last_action_update
 
-        # print("Modified")
-        # print(best_sequence)
-
         return best_sequence
 
-    def get_value_grad(self,cur_node, cur_seq, cur_reward): #best_seq: tuple (path sequence, path cost, reward, number of queries(called))
+
+    '''
+    Value gradients of action by finite difference.  
+    '''
+    def get_value_grad(self, cur_node, cur_seq, cur_reward): #best_seq: tuple (path sequence, path cost, reward, number of queries(called))
         
-        init_node = self.tree[cur_seq[0][:]]
+        # init_node = self.tree[cur_seq[0][:]]
         path_seq = []
         for seq in cur_seq:
             for tmp_path_seq in self.tree[seq][0][:]:
                 path_seq.append(tmp_path_seq)
-        cur_node_reward = init_node[2]
-        num_queri = init_node[3]
+        # cur_node_reward = init_node[2]
+        # num_queri = init_node[3]
         
         if(len(path_seq)>=2):
             final_action = path_seq[-1]
@@ -193,9 +193,7 @@ class MCTS():
         for key, value in self.tree.items():
             cp = value[0][0]
             if(type(cp)==tuple):
-                # print(cp)
                 x = cp[0]
-            # print('x ' + str(type(x))
                 y = cp[1]
                 plt.plot(x, y,marker='*')
         plt.show()
@@ -207,7 +205,6 @@ class MCTS():
             for pt in path:
                 if(self.obstacle_world.in_obstacle(pt, 3.0)):
                     is_collision = 1
-                    # print("Collision Occured!")
             if(is_collision == 0):
                 free_paths[key] = path
         
@@ -239,10 +236,7 @@ class MCTS():
         for i in xrange(self.frontier_size):
             node = 'child '+ str(i)
             if(node in self.tree): #If 'node' string key value is in current tree. 
-                leaf_eval[node] = self.tree[node][2] + 0.1*np.sqrt(2*(np.log(self.tree['root'][1]))/(self.tree[node][3]))
-#         print max(leaf_eval, key=leaf_eval.get)
-        
-        # print(max(leaf_eval, key=leaf_eval.get))
+                leaf_eval[node] = self.tree[node][2] + self.c*np.sqrt(2*(np.log(self.tree['root'][1]))/(self.tree[node][3]))
         return max(leaf_eval, key=leaf_eval.get)
 
     def rollout_policy(self, node, budget):
@@ -272,7 +266,7 @@ class MCTS():
             sequence.append(node)
         return sequence #return the sequence of nodes that are made
 
-    def update_tree(self, reward, sequence, value_grad):
+    def backprop(self, reward, sequence, value_grad):
         '''Propogate the reward for the sequence'''
         #TODO update costs as well
         self.tree['root'] = (self.tree['root'][0], self.tree['root'][1]+1)
@@ -301,16 +295,11 @@ class MCTS():
         samples = []
         obs = []
         for seq in sequence:
-            # print("Type")
-            # print(str(type(seq)))
             if(type(seq)== tuple):
                 samples.append([seq])
             else:
                 samples.append(self.tree[seq][0])
         obs = list(chain.from_iterable(samples))
-        # print("###################################################3")
-        # print("Samples: ")
-        # print(obs)
         if(self.aquisition_function==aqlib.mves ):
             #TODO: Fix the paramter setting. This leads to wrong MES acquisition function computation.
             # maxes, locs, funcs = sample_max_vals(robot_model=sim_world, t=t, nK = 3, nFeatures = 200, visualize = False, obstacles=obslib.FreeWorld(), f_rew='mes'): 
@@ -330,3 +319,332 @@ class MCTS():
                     best = r
                     best_child = 'child '+ str(i)
         return best_child, 0
+
+
+
+
+class Node(object):
+    def __init__(self, pose, parent, name, action = None, dense_path = None, zvals = None):
+        self.pose = pose
+        self.name = name
+        self.zvals = zvals
+        self.reward = 0.0
+        self.nqueries = 0
+        
+        # Parent will be none if the node is a root
+        self.parent = parent
+        self.children = None
+
+        # Set belief or belief action node
+        if action is None:
+            self.node_type = 'B'
+            self.action = None 
+            self.dense_path = None
+
+            # If the root node, depth is 0
+            if parent is None:
+                self.depth = 0
+            else:
+                self.depth = parent.depth + 1
+        else:
+            self.node_type = 'BA'
+            self.action = action
+            self.dense_path = dense_path
+            self.depth = parent.depth
+
+    def add_children(self, child_node):
+        if self.children is None:
+            self.children = []
+        self.children.append(child_node)
+    
+    def print_self(self):
+        print self.name
+
+class Tree(object):
+    def __init__(self, f_rew, f_aqu,  belief, pose, path_generator, t, depth, param, c):
+        self.path_generator = path_generator
+        self.max_depth = depth
+        self.param = param
+        self.t = t
+        self.f_rew = f_rew
+        self.aquisition_function = f_aqu
+        self.c = c
+
+        self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, zvals = None)  
+        #self.build_action_children(self.root) 
+
+    def get_best_child(self):
+        return self.root.children[np.argmax([node.nqueries for node in self.root.children])]
+
+    def backprop(self, leaf_node, reward):
+        if leaf_node.parent is None:
+            leaf_node.nqueries += 1
+            leaf_node.reward += reward
+            #print "Calling backprop on:",
+            #leaf_node.print_self()
+            #print "nqueries:", leaf_node.nqueries, "reward:", leaf_node.reward
+            return
+        else:
+            leaf_node.nqueries += 1
+            leaf_node.reward += reward
+            #print "Calling backprop on:",
+            #leaf_node.print_self()
+            #print "nqueries:", leaf_node.nqueries, "reward:", leaf_node.reward
+            self.backprop(leaf_node.parent, reward)
+            return
+    
+    def get_next_leaf(self, belief):
+        #print "Calling next with root"
+        next_leaf, reward = self.leaf_helper(self.root, reward = 0.0,  belief = belief) 
+        #print "Next leaf:", next_leaf
+        #print "Reward:", reward
+        self.backprop(next_leaf, reward)
+
+    def leaf_helper(self, current_node, reward, belief):
+        if current_node.node_type == 'B':
+            # Root belief node
+            if current_node.depth == self.max_depth:
+                #print "Returning leaf node:", current_node.name, "with reward", reward
+                return current_node, reward
+            # Intermediate belief node
+            else:
+                if current_node.children is None:
+                    self.build_action_children(current_node)
+
+                # If no viable actions are avaliable
+                if current_node.children is None:
+                    return current_node, reward
+
+                child = self.get_next_child(current_node)
+                #print "Selecting next action child:", child.name
+
+                # Recursive call
+                return self.leaf_helper(child, reward, belief)
+
+        # At random node, after selected action from a specific node
+        elif current_node.node_type == 'BA':
+            # Copy old belief
+            #gp_new = copy.copy(current_node.belief) 
+            #gp_new = current_node.belief
+
+            # Sample a new set of observations and form a new belief
+            #xobs = current_node.action
+            obs = np.array(current_node.action)
+            print(obs)
+            xobs = np.vstack([obs[:,0], obs[:,1]]).T
+
+            if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
+                r = self.aquisition_function(time = self.t, xvals = xobs, robot_model = belief, param = self.param)
+            elif self.f_rew == 'exp_improve':
+                r = self.aquisition_function(time = self.t, xvals = xobs, robot_model = belief, param = self.param)
+            elif self.f_rew == 'naive':
+                # param = sample_max_vals(belief, t=self.t, nK=int(self.param[0]))
+                r = self.aquisition_function(time = self.t, xvals = xobs, robot_model = belief, param = self.param)#(param, self.param[1]))
+            elif self.f_rew == 'naive_value':
+                r = self.aquisition_function(time = self.t, xvals = xobs, robot_model = belief, param = self.param)
+            else:
+                r = self.aquisition_function(time = self.t, xvals = xobs, robot_model = belief)
+
+            if current_node.children is not None:
+                alpha = 3.0 / (10.0 * (self.max_depth - current_node.depth) - 3.0)
+                nchild = len(current_node.children)
+                #print "Current depth:", current_node.depth, "alpha:", alpha
+                #print "First:", np.floor(nchild ** alpha)
+                #print "Second:", np.floor((nchild - 1) ** alpha)
+
+                '''
+                Progressive Widening 
+                '''
+                if current_node.depth < self.max_depth - 1 and np.floor(nchild ** alpha) == np.floor((nchild - 1) ** alpha):
+                    #print "Choosing from among current nodes"
+                    #child = random.choice(current_node.children)
+                    #print "number quieres:", nqueries
+                    child = random.choice(current_node.children)
+                    nqueries = [node.nqueries for node in current_node.children]
+                    child = random.choice([node for node in current_node.children if node.nqueries == min(nqueries)])
+
+                    if True:
+                        belief.add_data(xobs, child.zvals)
+                    #print "Selcted child:", child.nqueries
+                    return self.leaf_helper(child, reward + r, belief)
+
+            if True:
+                if belief.model is None:
+                    n_points, input_dim = xobs.shape
+                    zmean, zvar = np.zeros((n_points, )), np.eye(n_points) * belief.variance
+                    zobs = np.random.multivariate_normal(mean = zmean, cov = zvar)
+                    zobs = np.reshape(zobs, (n_points, 1))
+                else:
+                    zobs = belief.posterior_samples(xobs, full_cov = False, size = 1)
+                    n_points, input_dim = xobs.shape
+                    zobs = np.reshape(zobs, (n_points,1))
+
+                # print(xobs)
+                # print(type(zobs))
+                belief.add_data(xobs, zobs)
+            else:
+                zobs = belief.posterior_samples(xobs, full_cov = False, size = 1)
+                n_points, input_dim = xobs.shape
+                zobs = np.reshape(zobs, (n_points,1))
+
+            belief.add_data(xobs, zobs)
+            pose_new = current_node.dense_path[-1]
+            child = Node(pose = pose_new, 
+                         parent = current_node, 
+                         name = current_node.name + '_belief' + str(current_node.depth + 1), 
+                         action = None, 
+                         dense_path = None, 
+                         zvals = zobs)
+            #print "Adding next belief child:", child.name
+            current_node.add_children(child)
+
+            # Recursive call
+            return self.leaf_helper(child, reward + r, belief)
+
+    def get_next_child(self, current_node):
+        vals = {}
+        # e_d = 0.5 * (1.0 - (3.0/10.0*(self.max_depth - current_node.depth)))
+        e_d = 0.5 * (1.0 - (3.0/(10.0*(self.max_depth - current_node.depth))))
+        for i, child in enumerate(current_node.children):
+            #print "Considering child:", child.name, "with queries:", child.nqueries
+            if child.nqueries == 0:
+                return child
+            vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
+            #vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
+        # Return the max node, or a random node if the value is equal
+        return random.choice([key for key in vals.keys() if vals[key] == max(vals.values())])
+        
+    def build_action_children(self, parent):
+        # print(self.path_generator.get_path_set(parent.pose))
+        # print(self.path_generator)
+        actions, dense_paths = self.path_generator.get_path_set(parent.pose)
+        # actions = self.path_generator.get_path_set(parent.pose)
+        # dense_paths = [0]
+        if len(actions) == 0:
+            print "No actions!", 
+            return
+        
+        #print "Creating children for:", parent.name
+        for i, action in enumerate(actions.keys()):
+            #print "Action:", i
+            parent.add_children(Node(pose = parent.pose, 
+                                    parent = parent, 
+                                    name = parent.name + '_action' + str(i), 
+                                    action = actions[action], 
+                                    dense_path = dense_paths[action],
+                                    zvals = None))
+
+    def print_tree(self):
+        counter = self.print_helper(self.root)
+        print "# nodes in tree:", counter
+
+    def print_helper(self, cur_node):
+        if cur_node.children is None:
+            #cur_node.print_self()
+            #print cur_node.name
+            return 1
+        else:
+            #cur_node.print_self()
+            #print "\n"
+            counter = 0
+            for child in cur_node.children:
+                counter += self.print_helper(child)
+            return counter
+
+
+
+class cMCTS(MCTS):
+    '''Class that establishes a MCTS for nonmyopic planning'''
+    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, planning_limit, frontier_size,
+                path_generator, aquisition_function, time, gradient_on, grad_step, lidar, SFC):
+        # Call the constructor of the super class
+        super(cMCTS, self).__init__(ranges, obstacle_world, computation_budget, belief, initial_pose, planning_limit, frontier_size,
+                                    path_generator, aquisition_function, time, gradient_on, grad_step, lidar, SFC)
+        # self.tree_type = tree_type
+        # Tree type is dpw 
+        # self.aq_param = aq_param
+        # self.GP = belief
+
+        # The differnt constatns use logarthmic vs polynomical exploriation
+        if self.f_rew == 'mean':
+            # if self.tree_type == 'belief':
+            #     self.c = 1000
+            # elif self.tree_type == 'dpw':
+            self.c = 5000
+        elif self.f_rew == 'exp_improve':
+            self.c = 200
+        elif self.f_rew == 'mes':
+            # if self.tree_type == 'belief':
+            #     self.c = 1.0 / np.sqrt(2.0)
+            # elif self.tree_type == 'dpw':
+                # self.c = 1.0 / np.sqrt(2.0)
+            self.c = 1.0
+                # self.c = 5.0
+        else:
+            self.c = 1.0
+        print "Setting c to :", self.c
+
+    def choose_trajectory(self, t):
+        #Main function loop which makes the tree and selects the best child
+        #Output: path to take, cost of that path
+
+        # randomly sample the world for entropy search function
+        if self.f_rew == 'mes':
+            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t = t, visualize=True)
+            param = (self.max_val, self.max_locs, self.target)
+            print("Hello")
+        elif self.f_rew == 'exp_improve':
+            param = [self.current_max]
+        elif self.f_rew == 'naive' or self.f_rew == 'naive_value':
+            self.max_val, self.max_locs, self.target  = sample_max_vals(self.GP, t=t, nK=int(self.aq_param[0]), visualize=True, f_rew=self.f_rew)
+            param = ((self.max_val, self.max_locs, self.target), self.aq_param[1])
+        else:
+            param = None
+
+        # initialize tree
+        if self.tree_type == 'dpw':
+            self.tree = Tree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
+        elif self.tree_type == 'belief':
+            self.tree = BeliefTree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
+        else:
+            raise ValueError('Tree type must be one of either \'dpw\' or \'belief\'')
+        #self.tree.get_next_leaf()
+        #print self.tree.root.children[0].children
+
+        time_start = time.clock()            
+        # while we still have time to compute, generate the tree
+        i = 0
+        while time.clock() - time_start < self.comp_budget:#i < self.comp_budget:
+            i += 1
+            gp = copy.copy(self.GP)
+            self.tree.get_next_leaf(gp)
+
+            if True:
+                gp = copy.copy(self.GP)
+        time_end = time.clock()
+        print "Rollouts completed in", str(time_end - time_start) +  "s"
+        print "Number of rollouts:", i
+        self.tree.print_tree()
+
+        print [(node.nqueries, node.reward/(node.nqueries+0.1)) for node in self.tree.root.children]
+
+        # best_child = self.tree.root.children[np.argmax([node.nqueries for node in self.tree.root.children])]
+        best_child = random.choice([node for node in self.tree.root.children if node.nqueries == max([n.nqueries for n in self.tree.root.children])])
+        all_vals = {}
+        for i, child in enumerate(self.tree.root.children):
+            all_vals[i] = child.reward / (float(child.nqueries)+0.1)
+            # print(str(i) + " is " + str(all_vals[i]))
+
+        paths, dense_paths = self.path_generator.get_path_set(self.cp)
+        return best_child.action, best_child.dense_path, best_child.reward/(float(best_child.nqueries)+1.0), paths, all_vals, self.max_locs, self.max_val, self.target
+
+        # get the best action to take with most promising futures, base best on whether to
+        # consider cost
+        #best_sequence, best_val, all_vals = self.get_best_child()
+
+        #Document the information
+        #print "Number of rollouts:", i, "\t Size of tree:", len(self.tree)
+        #logger.info("Number of rollouts: {} \t Size of tree: {}".format(i, len(self.tree)))
+        #np.save('./figures/' + self.f_rew + '/tree_' + str(t) + '.npy', self.tree)
+        #return self.tree[best_sequence][0], self.tree[best_sequence][1], best_val, paths, all_vals, self.max_locs, self.max_val
+

@@ -314,53 +314,64 @@ class Nonmyopic_Robot(Robot):
                         self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step, self.lidar, SFC)
             best_path, cost = mcts.get_actions()
 
+            self.trajectory.append(best_path)
+
             # mcts = mc_lib.cMCTS(self.comp_budget, self.GP, self.loc, self.roll_length, self.path_generator, self.aquisition_function, self.f_rew, t, None, False, 'dpw')
             # # best_path, best, cost = mcts.get_best_child()      
 
             #TODO: Is this necessary?? Figure out whether it is. 
             # sampling_path, best_path, best_val, all_paths, all_values, self.max_locs, self.max_val, self.target = self.choose_trajectory(T=T, t=t)
-#             print best_path
-            data = np.array(best_path)
-            x1 = data[:,0]
-            x2 = data[:,1]
-            xlocs = np.vstack([x1, x2]).T
+
             all_paths, _ = self.path_generator.get_path_set(self.loc)
 
             free_paths = self.collision_check(all_paths)
             
-            self.eval.update_metrics(t, self.GP, free_paths, best_path)
+            self.eval.update_metrics(t, self.GP, free_paths, best_path) #All free paths are only required for instant regret metric 
 
             '''
             Observation Step 
             Collect measurement of 'Desired Process', 'Lidar value', 'SDF value'
             '''
+            data = np.array(best_path)
+            x1 = data[:,0]
+            x2 = data[:,1]
+            xlocs = np.vstack([x1, x2]).T
+
             self.collect_observations(xlocs)
 
             self.collect_lidar_observations(xlocs)
 
-            # print(np.array([data[-1,0],data[-1,1]]))
-            frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
+            '''
+            Frontier & SFC building 
+            '''
+            # frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
             # print("Frontier test")
             # print("Data", np.array([data[-1,0],data[-1,1]]))
             # print(frontier_set)
 
-            self.trajectory.append(best_path)
-
             ft_module = ft_sfc.Ft_SFC(ranges=self.ranges, obstacle_world=self.obstacle_World, pos=np.array([data[-1,0],data[-1,1]]), lidar=self.lidar,
                                       aq_func=self.aquisition_function, time=t, belief=self.GP) 
             selected_ft = ft_module.get_selected_frontier()
+            frontier_set = ft_module.get_clustered_frontier();
 
             # print("Selected", selected_ft)
             # self.lidar.selected_fts(selected_ft)
             SFC = ft_module.gen_SFC()
             # print("SFC", SFC)
+
+            '''
+            Visualization 
+            '''
             visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
-            # visual.show(data)
             visual.visualization(t)
             
             if(self.save_fig == True):
                 self.save_figure(t)
 
+
+            '''
+            Trajectory Execution (Receding Horizon)
+            '''
             if len(best_path) == 1:
                 self.loc = (best_path[-1][0],best_path[-1][1],best_path[-1][2]-1.14)
             elif best_path[-1][0] < self.ranges[0] + 0.5 or best_path[-1][0] > self.ranges[1] - 0.5:

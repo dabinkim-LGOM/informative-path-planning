@@ -554,23 +554,27 @@ class Tree(object):
                 elif current_node.depth < self.max_depth - 1:
                     print "##########################Grad Called################################"
                     # grad_val = self.get_value_grad(current_node)
-                    grad_updated_action = self.update_action(current_node)
+                    actions = current_node.action 
+                    dense_paths = current_node.dense_path
+                    grad_updated_action = self.update_action(actions)
                     pg = Dubins_EqualPath_Generator(1,1.0, self.turning_radius, 0.5, self.ranges)
                     pg.cp = current_node.pose
                     pg.goals = [grad_updated_action[-1]]
                     # print "Update Action: ", grad_updated_action
                     # print "Goals: ", pg.goals
                     new_action, new_dense_path = pg.make_sample_paths()
-                    new_action = [new_action, pg.goals]
-                    new_dense_path = [new_dense_path, pg.goals]
-                    actions[action] = new_action
-                    dense_paths[action] = new_dense_path
+                    new_action[0].append(grad_updated_action[-1])
+                    new_dense_path[0].append(grad_updated_action[-1])
+                    # print "New action: ", new_action
+                    # actions[action] = new_action[0]
+                    # dense_paths[action] = new_dense_path[0]
+
                     for i, action in enumerate(new_action.keys()):
                         # print "new action ", new_action
                         grad_update_node = Node(pose=current_node.parent.pose, parent=current_node.parent, 
                                                 name=current_node.parent.name + '_action'+'_grad', 
                                                 action = new_action[action], dense_path = new_dense_path[action], zvals = None)
-                    parent.add_children(grad_update_node)
+                    current_node.parent.add_children(grad_update_node)
                     return self.leaf_helper(current_node.children[0], reward + r, belief, 1) #Yes rollout if PW is not called
                 
             '''
@@ -678,7 +682,7 @@ class Tree(object):
             x = final_action[0]
             y = final_action[1]
             yaw = final_action[2]
-            eps = 1.0
+            eps = 0.2
             step = 1.0
             x_dif = x + eps * step 
             y_dif = y + eps * step
@@ -692,8 +696,8 @@ class Tree(object):
             reward_x = self.get_reward(new_x_seq)
             # print "reward_x", reward_x
             reward_y = self.get_reward(new_y_seq)
-            print "Reward: ", reward_x, " ", reward_y
-            print "Cur reward: ", cur_reward 
+            # print "Reward: ", reward_x, " ", reward_y
+            # print "Cur reward: ", cur_reward 
             grad_x = (reward_x - cur_reward)/ eps
             grad_y = (reward_y - cur_reward) / eps
         return [grad_x, grad_y]
@@ -750,16 +754,16 @@ class Tree(object):
                 if len(current_action)>1:
                     # grad_val = self.get_value_grad(current_action)
                     grad_updated_action = self.update_action(current_action)
-                    pg = Dubins_EqualPath_Generator(1,1.0, self.turning_radius, 0.5, self.ranges)
+                    pg = Dubins_EqualPath_Generator(1,1.0, self.turning_radius, 2.0, self.ranges)
                     pg.cp = parent.pose
                     pg.goals = [grad_updated_action[-1]]
-                    print "Update Action: ", grad_updated_action
-                    print "Goals: ", pg.goals
+                    # print "Update Action: ", grad_updated_action
+                    # print "Goals: ", pg.goals
                     new_action, new_dense_path = pg.make_sample_paths()
                     
                     new_action[0].append(grad_updated_action[-1])
                     new_dense_path[0].append(grad_updated_action[-1])
-                    print "New action: ", new_action
+                    # print "New action: ", new_action
                     actions[action] = new_action[0]
                     dense_paths[action] = new_dense_path[0]
 

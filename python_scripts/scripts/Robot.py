@@ -20,7 +20,7 @@ import logging as log
 from Environment import *
 from Evaluation import *
 from GPModel import *
-from MCTS import *
+import MCTS as mc
 import Path_Generator as pg
 import grid_map_ipp_module as grid 
 import vis_grid_map as vis 
@@ -55,7 +55,7 @@ class Robot:
         self.loc = start_loc # Initial location of the robot      
         self.sample_world = sample_world # A function handel that allows the robot to sample from the environment 
         self.obstacle_World = obstacle_world
-
+        self.turning_radius = turning_radius
         if f_rew == 'hotspot_info':
             self.aquisition_function = hotspot_info_UCB
         elif f_rew == 'mean':
@@ -244,7 +244,7 @@ class Nonmyopic_Robot(Robot):
         self.f_rew = f_rew
         self.gradient_on = gradient_on
         self.grad_step = grad_step
-
+        self.turning_radius = turning_radius
         if f_rew == 'hotspot_info':
             self.aquisition_function = hotspot_info_UCB
         elif f_rew == 'mean':
@@ -316,8 +316,8 @@ class Nonmyopic_Robot(Robot):
             # best_path, cost = mcts.get_actions()
 
     
-            mcts = cMCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.fs, 
-                        self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
+            mcts = mc.cMCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.turning_radius,
+                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
             best_path, best_dense_path, cost = mcts.choose_trajectory()    
 
             self.trajectory.append(best_path)

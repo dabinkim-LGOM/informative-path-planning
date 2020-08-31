@@ -92,7 +92,7 @@ class Planning_Result():
                         init_variance = 100.0, 
                         noise = 0.05,
                         path_generator = 'equal_dubins',
-                        frontier_size = 10, 
+                        frontier_size = 5, 
                         horizon_length = 5.0, 
                         turning_radius = 0.5, 
                         sample_step = 2.0,

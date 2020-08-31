@@ -96,7 +96,7 @@ if __name__ == "__main__":
     observations = world.sample_value(data)
 
     input_limit = [0.0, 10.0, -30.0, 30.0] #Limit of actuation 
-    sample_number = 10 #Number of sample actions 
+    sample_number = 20 #Number of sample actions 
 
     '''
     Agent Initialization
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     planning_type = 'nonmyopic'
 
     # for gradient_step in gradient_step_list:
-    gradient_step = 0.0    
+    gradient_step = 0.1   
     print('range_max ' + str(range_max)+ ' iteration '+ ' gradient_step ' + str(gradient_step))
     iteration = 1
     planning = Planning_Result(planning_type, world, 'Free', obstacle_world, evaluation, reward_function, ranges, start_loc, input_limit, sample_number, time_step, grid_map, lidar, display, gradient_on, gradient_step, iteration)

@@ -220,7 +220,35 @@ namespace RayTracer{
         return frontier_position;
     }
 
+    std::vector<Eigen::Vector2d>
+    Lidar_sensor::frontier_kmeans(std::vector<Eigen::Vector2d>& frontier_pts){
+        int total_size = frontier_pts.size();
+        int cluster_num = std::ceil(total_size / 20.0); 
+        int iter = 5;
+        clustering::KMeans km(cluster_num, iter);
 
+        std::vector<clustering::Point> points; 
+        for(int i=0; i< total_size; i++){
+            clustering::Point pt(i, frontier_pts[i]);
+            points.push_back(pt);
+        }
+        km.run(points);
+        std::vector<clustering::Cluster> cluster_results;
+        cluster_results = km.get_cluster();
+
+        std::vector<Eigen::Vector2d> centroid_vec;
+        for(int i=0; i<cluster_results.size(); i++){
+            std::vector<double> pos = cluster_results[i].getCentroidByPos();
+            Eigen::Vector2d eigen_pos(pos[0], pos[1]);
+            centroid_vec.push_back(eigen_pos);
+        }
+        clustered_fts_ = centroid_vec;
+        return centroid_vec; 
+    }
+
+    //TODO: Change to faster method this is high computational burden 
+    // 1) K means, 2) Greedy 3) DBScan
+    // K means is told that much faster than DBScan 
     std::vector<Eigen::Vector2d>
     Lidar_sensor::frontier_clustering(std::vector<Eigen::Vector2d> frontier_pts){
         std::vector<std::vector<Eigen::Vector2d> > clustered_frontiers; //Clustered_frontiers with index 
@@ -268,6 +296,58 @@ namespace RayTracer{
 
 
     /**
+     * @brief Get shortest path's distance of clustered frontier points. 
+     * 
+     * @param pos_euc 
+     * @return vector<double> 
+     */
+    vector<double> Lidar_sensor::get_ft_distance(Eigen::Vector2d& pos_euc){
+        vector<double> distance_vec; 
+
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        // grid_map::Position pos_grid = pos_euc; 
+        vector<vector<Eigen::Vector2d> > path; 
+        grid_map::Index cur_index; 
+        belief_map_.getIndex(pos_grid, cur_index);
+
+        grid_map::Index frontier_index; 
+        std::cout << "Before JPS" << std::endl; 
+        try
+        {
+            for(int i=0; i<clustered_fts_.size(); i++){
+                std:: cout << clustered_fts_.at(i).transpose() << std::endl; 
+                grid_map::Position fts_pos_grid; fts_pos_grid = grid_map::euc_to_gridref(clustered_fts_.at(i), map_size_);
+                belief_map_.getIndex(fts_pos_grid, frontier_index);
+                Planner::SFC sfc(belief_map_, frontier_index, cur_index);
+
+                std::vector<grid_map::Position> path_grid;
+                path_grid = sfc.JPS_Path();
+                path.push_back(path_grid);
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cout << "RunTime JPS Error" <<std::endl;
+            std::cerr << e.what() << '\n';
+            
+        }
+        std::cout << "Completed JPS" << std::endl;
+
+        // vector<vector<Eigen::Vector2d> > path = get_JPS_Path(pos_euc);
+        for(int i=0; i<path.size(); i++)
+        {
+            double distance = 0.0; 
+            for(int j=0; j<path.at(i).size()-1; j++){
+                distance = distance + ((path[i][j+1][0]- path[i][j][0])*(path[i][j+1][0]- path[i][j][0])
+                                     + (path[i][j+1][1]- path[i][j][1])*(path[i][j+1][1]- path[i][j][1]));
+            }
+            distance_vec.push_back(distance);
+        }
+        std::cout << "During Assigning" << std::endl; 
+        return distance_vec;
+    }
+
+    /**
      * @brief Generate vector of SFCs with respect to given selected frontier vectors. 
      * 
      * @param pos : euc reference
@@ -306,21 +386,31 @@ namespace RayTracer{
         grid_map::Index cur_index; 
         belief_map_.getIndex(pos_grid, cur_index);
         grid_map::Index frontier_index; 
-
+ 
         for(int i=0; i<selected_fts_.size(); i++){
+            std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
+
             grid_map::Position ft_pos_grid; ft_pos_grid = grid_map::euc_to_gridref(selected_fts_.at(i), map_size_);
             belief_map_.getIndex(ft_pos_grid, frontier_index);
             // cout << "Occupancy Value At Start: " << belief_map_.at("base", cur_index) << endl; 
             // cout << "Occupancy Value At Goal: " << belief_map_.at("base", frontier_index) << endl; 
-            auto names = belief_map_.getLayers();
-                 for(int i=0; i<names.size();i++){
-                     cout << names.at(i) << endl; 
-            }
+
+            std::chrono::duration<double> first = std::chrono::system_clock::now() - start;
+            std::cout << "SFC_First : " << first.count() << " seconds" << std::endl;
+
             Planner::SFC sfc(belief_map_, frontier_index, cur_index);
 
-            cout << "Start Generating..." << endl; 
+            std::chrono::duration<double> second = std::chrono::system_clock::now() - start;
+            std::cout << "SFC_Second : " << second.count() - first.count() << " seconds" << std::endl;
+            // cout << "Start Generating..." << endl; 
             sfc.generate_SFC_jwp();
+            std::chrono::duration<double> third = std::chrono::system_clock::now() - start;
+            std::cout << "SFC_Third : " << third.count() - second.count() << " seconds" << std::endl;
+
             auto cur_sfc = sfc.get_corridor_jwp();
+            std::chrono::duration<double> fourth = std::chrono::system_clock::now() - start;
+            std::cout << "SFC_Fourth : " << fourth.count() - third.count() << " seconds" << std::endl;
+
             // cout << "Generated SFC" << endl; 
             cout << "Size of SFC: " << cur_sfc.size() << endl; 
             
@@ -387,46 +477,6 @@ namespace RayTracer{
         }
         return total_path_grid;         
         //Should return the pair between frontier cell & SFC block.
-    }
-
-    /**
-     * @brief Get shortest path's distance of clustered frontier points. 
-     * 
-     * @param pos_euc 
-     * @return vector<double> 
-     */
-    vector<double> Lidar_sensor::get_ft_distance(Eigen::Vector2d& pos_euc){
-        vector<double> distance_vec; 
-
-        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
-        // grid_map::Position pos_grid = pos_euc; 
-        vector<vector<Eigen::Vector2d> > path; 
-        grid_map::Index cur_index; 
-        belief_map_.getIndex(pos_grid, cur_index);
-
-        grid_map::Index frontier_index; 
-
-        for(int i=0; i<clustered_fts_.size(); i++){
-            grid_map::Position fts_pos_grid; fts_pos_grid = grid_map::euc_to_gridref(clustered_fts_.at(i), map_size_);
-            belief_map_.getIndex(fts_pos_grid, frontier_index);
-            Planner::SFC sfc(belief_map_, frontier_index, cur_index);
-
-            std::vector<grid_map::Position> path_grid;
-            path_grid = sfc.JPS_Path();
-            path.push_back(path_grid);
-        }
-
-        // vector<vector<Eigen::Vector2d> > path = get_JPS_Path(pos_euc);
-        for(int i=0; i<path.size(); i++)
-        {
-            double distance = 0.0; 
-            for(int j=0; j<path.at(i).size()-1; j++){
-                distance = distance + ((path[i][j+1][0]- path[i][j][0])*(path[i][j+1][0]- path[i][j][0])
-                                     + (path[i][j+1][1]- path[i][j][1])*(path[i][j+1][1]- path[i][j][1]));
-            }
-            distance_vec.push_back(distance);
-        }
-        return distance_vec;
     }
 
 }

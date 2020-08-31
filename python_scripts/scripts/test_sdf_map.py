@@ -104,7 +104,7 @@ if __name__ == "__main__":
     2) Lidar sensor construction 
     '''
     start_loc = (0.5, 0.5, 0.0)
-    time_step = 200
+    time_step = 100
 
     cur_x = 1.0
     cur_y = 1.0

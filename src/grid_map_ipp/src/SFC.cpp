@@ -100,15 +100,19 @@ void Planner::SFC::generate_SFC_jwp()
         
     //     recon_jps_path.push_back(pos);
     // }
-    recon_jps_path = JPS_Path();
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
 
+    recon_jps_path = JPS_Path();
+    std::chrono::duration<double> third = std::chrono::system_clock::now() - start;
+    std::cout << "SFC_3_1 : " << third.count() << " seconds" << std::endl;
     // cout << "RECON_JPS_PATH" << endl; 
     // for(int i=0; i<recon_jps_path.size(); i++){
     //         cout << recon_jps_path.at(i).transpose() << endl; 
     // }
     
     bool gen_box = updateObsBox(recon_jps_path);
-
+    std::chrono::duration<double> fourth = std::chrono::system_clock::now() - start;
+    std::cout << "SFC_3_2 : " << fourth.count() - third.count() << " seconds" << std::endl;
 }
 
 //Grid reference frame
@@ -217,10 +221,11 @@ bool Planner::SFC::updateObsBox(std::vector<Eigen::Vector2d> initTraj) {
     //     if(i==initTraj.size()-1)
     //         break; 
     // }
-    cout << "RECON_JPS_PATH" << endl; 
-    for(int i=0; i<initTraj.size(); i++){
-            cout << initTraj.at(i).transpose() << endl; 
-    }
+
+    // cout << "RECON_JPS_PATH" << endl; 
+    // for(int i=0; i<initTraj.size(); i++){
+    //         cout << initTraj.at(i).transpose() << endl; 
+    // }
 
 
     std::vector<double> box_prev{0, 0, 0, 0};
@@ -292,9 +297,9 @@ bool Planner::SFC::isObstacleInBox(const std::vector<double> &box, double margin
     // return false; 
 
     int count1 = 0;
-    for (double i = box[0]; i < box[2] + SP_EPSILON; i += box_xy_res) {
+    for (double i = box[0]; i < box[2] + SP_EPSILON; i += 2*box_xy_res) {
         int count2 = 0;
-        for (double j = box[1]; j < box[3] + SP_EPSILON; j += box_xy_res) {
+        for (double j = box[1]; j < box[3] + SP_EPSILON; j += 2*box_xy_res) {
             int count3 = 0;
 
                 x = i + SP_EPSILON;

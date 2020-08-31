@@ -229,7 +229,7 @@ class Nonmyopic_Robot(Robot):
     def __init__(self, sample_world, obstacle_world, start_loc = (0.0, 0.0, 0.0), ranges = (-10., 10., -10., 10.), kernel_file = None, 
             kernel_dataset = None, prior_dataset = None, init_lengthscale = 10.0, init_variance = 100.0, noise = 0.05, 
             path_generator = 'default', frontier_size = 6, horizon_length = 5, turning_radius = 1, sample_step = 0.5, 
-            evaluation = None , f_rew = 'mean', computation_budget = 60, rollout_length = 6, input_limit = [0.0, 10.0, -30.0, 30.0],
+            evaluation = None , f_rew = 'mean', computation_budget = 60, max_depth = 4, rollout_length = 6, input_limit = [0.0, 10.0, -30.0, 30.0],
              sample_number= 10, step_time = 5.0, grid_map = None, lidar = None, is_save_fig = False, gradient_on = False, grad_step = 0.05):
         ''' Initialize the robot class with a GP model, initial location, path sets, and prior dataset'''
 
@@ -300,7 +300,8 @@ class Nonmyopic_Robot(Robot):
         
         # Computation limits
         self.comp_budget = computation_budget
-        self.roll_length = rollout_length
+        self.max_rollout_depth = rollout_length
+        self.max_depth = max_depth
 
     def nonmyopic_planner(self, T=3):
         ''' Use a monte carlo tree search in order to perform long-horizon planning'''
@@ -310,14 +311,16 @@ class Nonmyopic_Robot(Robot):
         for t in xrange(T):
             #computation_budget, belief, initial_pose, planning_limit, frontier_size, path_generator, aquisition_function, time
             # FIXME MCTS
-            mcts = MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.roll_length, self.fs, 
-                        self.path_generator, self.aquisition_function, t, self.gradient_on, self.grad_step, self.lidar, SFC)
-            best_path, cost = mcts.get_actions()
+            # mcts = MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.fs, 
+            #             self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
+            # best_path, cost = mcts.get_actions()
+
+    
+            mcts = cMCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.fs, 
+                        self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
+            best_path, best_dense_path, cost = mcts.choose_trajectory()    
 
             self.trajectory.append(best_path)
-
-            # mcts = mc_lib.cMCTS(self.comp_budget, self.GP, self.loc, self.roll_length, self.path_generator, self.aquisition_function, self.f_rew, t, None, False, 'dpw')
-            # # best_path, best, cost = mcts.get_best_child()      
 
             #TODO: Is this necessary?? Figure out whether it is. 
             # sampling_path, best_path, best_val, all_paths, all_values, self.max_locs, self.max_val, self.target = self.choose_trajectory(T=T, t=t)
@@ -344,26 +347,39 @@ class Nonmyopic_Robot(Robot):
             '''
             Frontier & SFC building 
             '''
+            time_prev = time.clock()
             # frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
-            # print("Frontier test")
-            # print("Data", np.array([data[-1,0],data[-1,1]]))
-            # print(frontier_set)
 
-            ft_module = ft_sfc.Ft_SFC(ranges=self.ranges, obstacle_world=self.obstacle_World, pos=np.array([data[-1,0],data[-1,1]]), lidar=self.lidar,
-                                      aq_func=self.aquisition_function, time=t, belief=self.GP) 
-            selected_ft = ft_module.get_selected_frontier()
-            frontier_set = ft_module.get_clustered_frontier();
+            # # print("Frontier test")
+            # # print("Data", np.array([data[-1,0],data[-1,1]]))
+            # # print(frontier_set)
 
-            # print("Selected", selected_ft)
-            # self.lidar.selected_fts(selected_ft)
-            SFC = ft_module.gen_SFC()
-            # print("SFC", SFC)
+            # ft_module = ft_sfc.Ft_SFC(ranges=self.ranges, obstacle_world=self.obstacle_World, pos=np.array([data[-1,0],data[-1,1]]), lidar=self.lidar,
+            #                           aq_func=self.aquisition_function, time=t, belief=self.GP) 
+            # time_1 = time.clock()
+
+            # print "Frontier Module: ", time_1 - time_prev
+
+            # selected_ft = ft_module.get_selected_frontier()
+            # time_2 = time.clock()
+            # print "Selected Ft: ", time_2 - time_1
+            # time_3 = time.clock()
+            # frontier_set = ft_module.get_clustered_frontier()
+            # print "Frontier Set: ", time_3 - time_2
+
+            # # # print("Selected", selected_ft)
+            # # # self.lidar.selected_fts(selected_ft)
+            # SFC = ft_module.gen_SFC()
+            # time_4 = time.clock()
+            # print "SFC: ", time_4 - time_3
+            # print "Total: ", time_4 - time_prev
+            # # # print("SFC", SFC)
 
             '''
             Visualization 
             '''
-            visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
-            visual.visualization(t)
+            # visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
+            # visual.visualization(t)
             
             if(self.save_fig == True):
                 self.save_figure(t)

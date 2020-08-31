@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import aq_library as aq_lib 
 import obstacles as obs 
+import time 
 
 '''
 Class for 1) Frontier Points generation, 2) Select the most promising frontier points, 3) Safe Flight Corridor for each selected frontier points. 
@@ -24,19 +25,32 @@ class Ft_SFC(object):
     def gen_clustered_frontier(self):
         frontiers = self.lidar.frontier_detection(self.pos)
         # print('Frontiers', frontiers)
+
         clustered_frontiers = self.lidar.frontier_clustering(frontiers)
+        #KMeans
+        # clustered_frontiers = self.lidar.frontier_kmeans(frontiers)
         self.clustered_fts = clustered_frontiers 
         # print(clustered_frontiers)
 
     def select_fts(self):
+        start_time = time.clock()
+        flag = 0
         if self.clustered_fts is None:
             self.gen_clustered_frontier()
-
+            flag = 1
+        
         if self.ft_num > len(self.clustered_fts):
             self.ft_num = len(self.clustered_fts)
             self.select_fts = self.clustered_fts #Select the whole clustered frontier set 
-        
+
+        time1 = time.clock()
+        # print "Generating Clusters: ", time1 - start_time 
+        # print "Flag: ", flag 
+
         distance_vec = self.lidar.get_ft_distance(self.pos)
+        time2 = time.clock()
+        # print "Get FT Distance: ", time2 - time1 
+
         val_array = np.empty(len(self.clustered_fts))
         i = 0
         if(self.clustered_fts is not None):
@@ -49,20 +63,34 @@ class Ft_SFC(object):
                     i = i + 1
                 else:
                     # print("Value: ", self.clustered_fts)
+                    # print "i: ", i
+                    # print "val array: ", val_array[i]
+                    # print "Distance Vec: ", distance_vec
                     # x_ft = np.array(x_ft)
                     val_array[i] = self.aq_func(time = self.time, xvals = x_ft, robot_model = self.GP) * np.exp(-1.0*self.lam * distance_vec[i])
                     i = i + 1
             #Sort clustered frontiers with respect to the evaluation values. 
-            print(val_array)
+            # print(val_array)
+            time_prev = time2 
+            time2 = time.clock()
+            # print "Number of Clusters: ", i
+            # print "Evaluating ft points: ", time2-time_prev 
             val_array, self.clustered_fts = (list(t) for t in zip(*sorted(zip(val_array, self.clustered_fts))))
+
+            
             self.selected_fts = self.clustered_fts[0:self.ft_num]
             # print("Selection Called")
             # print(self.clustered_fts)
             # print(self.selected_fts)
             self.clustered_fts = np.array(self.clustered_fts)
+            time_prev = time2 
+            time2 = time.clock()
+            # print "Ft points sorting: ", time2-time_prev 
+
         else:
             self.gen_clustered_frontier()
             self.select_fts()
+
 
     def get_clustered_frontier(self):
         if self.clustered_fts is not None:

@@ -6,6 +6,7 @@
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
 #include "grid_map_ipp/wavefront_frontier_detection.hpp"
 #include "grid_map_ipp/util.hpp"
+#include "grid_map_ipp/kmeans.hpp"
 // #include "grid_map_ipp/util.hpp"
 #include <algorithm>
 #include "SFC/SFC.hpp"
@@ -15,6 +16,7 @@
 #include <string>
 #include <unordered_set>
 #include <random>
+#include <chrono>
 
 using namespace std;
 
@@ -91,10 +93,7 @@ namespace RayTracer{
              , resol_(resol), raytracer_(raytracer)
              {
                  belief_map_ = init_belief_map();
-                 auto names = belief_map_.getLayers();
-                 for(int i=0; i<names.size();i++){
-                     cout << names.at(i) << endl; 
-                 }
+                //  auto names = belief_map_.getLayers();
                  map_size_ = belief_map_.getSize();
                  obstacles_.clear();
                  submap_length_ << 20.0, 20.0;
@@ -142,7 +141,8 @@ namespace RayTracer{
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
             //Return center position(euc ref) of each cluster. 
             vector<Eigen::Vector2d>  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);
-            
+            vector<Eigen::Vector2d> frontier_kmeans(std::vector<Eigen::Vector2d>& frontier_pts);
+
             //By acquisiton functions of frontier points, Python module selects frontier values to generate SFC. 
             //Input frontiers should not be transformed. 
             void set_selected_frontier(vector<Eigen::Vector2d>& selected_fts)
@@ -164,7 +164,7 @@ namespace RayTracer{
             Cor_vec return_SFC_jwp(Eigen::Vector2d& pos){
                 sfc_jwp_.clear();
                 if(sfc_jwp_.empty()){
-                    std::cout << "Hello?" << std::endl; 
+                    // std::cout << "Hello?" << std::endl; 
                     construct_SFC_jwp(pos);
                 }
                 // std::cout << "SFC Size: " << sfc_jwp_.at(0).size() << std::endl; 
@@ -176,7 +176,7 @@ namespace RayTracer{
             Cor_vec return_SFC_jwp_python(Eigen::Vector2d& pos){
                 sfc_jwp_.clear();
                 if(sfc_jwp_.empty()){
-                    std::cout << "Hello?" << std::endl; 
+                    // std::cout << "Hello?" << std::endl; 
                     construct_SFC_jwp(pos);
                 }
                 // std::cout << "SFC Size: " << sfc_jwp_.at(0).size() << std::endl; 

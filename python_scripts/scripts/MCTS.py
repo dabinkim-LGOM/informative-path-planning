@@ -25,6 +25,7 @@ from Evaluation import *
 from GPModel import *
 import GridMap_library as sdflib
 from Path_Generator import *
+from global_BO import Baseline 
 
 
 class MCTS(object):
@@ -944,4 +945,7 @@ class cMCTS(MCTS):
 
 class CBTS(MCTS):
     def __init__(self, ranges):
+        super(CBTS, self): __init__(ranges )
         self.ranges = ranges
+
+    

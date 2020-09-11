@@ -942,3 +942,6 @@ class cMCTS(MCTS):
         #np.save('./figures/' + self.f_rew + '/tree_' + str(t) + '.npy', self.tree)
         #return self.tree[best_sequence][0], self.tree[best_sequence][1], best_val, paths, all_vals, self.max_locs, self.max_val
 
+class CBTS(MCTS):
+    def __init__(self, ranges):
+        self.ranges = ranges

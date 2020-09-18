@@ -25,7 +25,7 @@ from Evaluation import *
 from GPModel import *
 import GridMap_library as sdflib
 from Path_Generator import *
-from global_BO import Baseline 
+from global_BO import ParticleSwarmOpt 
 
 
 class MCTS(object):
@@ -943,9 +943,80 @@ class cMCTS(MCTS):
         #np.save('./figures/' + self.f_rew + '/tree_' + str(t) + '.npy', self.tree)
         #return self.tree[best_sequence][0], self.tree[best_sequence][1], best_val, paths, all_vals, self.max_locs, self.max_val
 
+'''
+Baseline code for Continuous Belief Tree Search using PSO as global optimization for bayesian optimization 
+'''
 class CBTS(MCTS):
-    def __init__(self, ranges):
-        super(CBTS, self): __init__(ranges )
+    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+                path_generator, aquisition_function, f_rew, time):
+        super(CBTS, self): __init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+                path_generator, aquisition_function, f_rew, time )
         self.ranges = ranges
+        self.time = time 
+        self.obstacle_world = obstacle_world
+        self.belief = belief 
+        self.acquisition_function = aquisition_function
+        self.f_rew = f_rew 
+        self.computation_budget = computation_budget
+        self.initial_pose = initial_pose
+        self.path_generator = path_generator 
+        # self.optimizer = ParticleSwarmOpt
+        self.x_bound, self.y_bound = 10.0, 10.0 
+
+    def run_optimizer(self, pose):
+        self.optimizer = ParticleSwarmOpt(self.time, self.obstacle_world, self.belief, self.acquisition_function, pose, self.x_bound, self.y_bound)
+
+
+    def get_actions(self):
+        self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.acquisition_function, self.belief, self.initial_pose, self.path_generator, self.time, 
+                        max_depth = self.max_depth, max_rollout_depth= self.max_rollout_depth, turning_radius = self.turning_radius, 
+                        param = param, c = self.c, gradient_on=self.gradient_on, grad_step=self.grad_step)
+
+        self.tree = self.initialize_tree()
+        time_start = time.clock()
+
+        # self.sdf_map = self.generate_sdfmap(self.cp)
+        print("Current timestep : ", self.t)
+
+        # if self.sdf_map.is_exist_obstacle():
+        #     print("Here")
+        #     self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
+        iteration = 0
+        while time.clock() - time_start < self.budget:
+            current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)
+            iteration +=1
+            # #Update SDF map
+            # if self.sdf_map is not None:
+            #     print("Here")
+                # self.update_sdfmap(current_node)
+
+            sequence = self.rollout_policy(current_node, self.budget) #Add node
+            
+            reward = self.get_reward(sequence)
+            # print("cur_reward : " + str(reward))
+            value_grad = self.get_value_grad(current_node, sequence, reward)
+            # if(len(self.tree[sequence[0]])==4):
+            #     self.tree[sequence[0]] = (self.tree[sequence[0]][0],self.tree[sequence[0]][1], self.tree[sequence[0]][2], self.tree[sequence[0]][3], value_grad )
+            
+            self.backprop(reward, sequence, value_grad)
+            ###TODO: After Finish Build functions for update
+            # if(self.gradient_on):
+            #     self.update_action(reward, sequence, None)
+            # else:
+            #     self.backprop(reward, sequence, value_grad)
+            
+        # self.visualize_tree()
+        print("Rollout number : ", iteration)
+        print("Time spent : ", time.clock() - time_start)
+
+        best_sequence, cost = self.get_best_child()
+
+
+        # update_ver = self.update_action(self.tree[best_sequence])
+        if(self.gradient_on == True):
+            update_ver = self.update_action(self.tree[best_sequence])
+            return update_ver[0], cost
+        else:
+            return self.tree[best_sequence][0], cost
 
     

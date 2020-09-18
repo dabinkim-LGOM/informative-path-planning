@@ -44,7 +44,7 @@ class Planning_Result():
         if grid_map is not None:
             self.grid_map = grid_map
         else:
-            self.grid_map = None
+            self.grid_map = No/ne
         
         if lidar is not None:
             self.lidar = lidar

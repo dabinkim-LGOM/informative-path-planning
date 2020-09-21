@@ -316,10 +316,13 @@ class Nonmyopic_Robot(Robot):
             # best_path, cost = mcts.get_actions()
 
     
-            mcts = mc.cMCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.turning_radius,
-                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
-            best_path, best_dense_path, cost = mcts.choose_trajectory()    
+            # mcts = mc.cMCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.turning_radius,
+            #             self.fs, self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
+            # best_path, best_dense_path, cost = mcts.choose_trajectory()    
 
+            cbts = CBTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth,
+                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
+            best_path, best_dense_path, cost = cbts.get_actions()
             self.trajectory.append(best_path)
 
             #TODO: Is this necessary?? Figure out whether it is. 

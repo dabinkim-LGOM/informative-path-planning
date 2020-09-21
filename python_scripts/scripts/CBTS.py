@@ -65,9 +65,9 @@ class Node_C(object):
 
 
 class Tree_C(object):
-    def __init__(self, ranges, obstacle_world, f_rew, f_aqu,  belief, pose, t, max_depth, param):
+    def __init__(self, ranges, obstacle_world, f_rew, f_aqu,  belief, pose, t, max_depth, param, horizon_length, path_generator):
         self.ranges = ranges 
-        # self.path_generator = path_generator
+        self.path_generator = path_generator
         self.obstacle_world = obstacle_world
         self.max_depth = max_depth #Maximum tree depth?
         # self.max_rollout_depth = max_rollout_depth
@@ -75,13 +75,15 @@ class Tree_C(object):
         self.t = t
         self.f_rew = f_rew
         self.aquisition_function = f_aqu
-        # self.turning_radius = turning_radius
-        # self.c = c
-        # self.gradient_on = gradient_on
-        # self.grad_step = grad_step
         self.belief = belief 
+        self.xvals = None 
+        self.zvals = None 
 
         self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, zvals = None)  
+        self.gp_kern = GPy.kern.RBF(input_dim = self.dim, lengthscale = lengthscale, variance = variance) # kernel of GP for reward 
+        self.x_bound, self.y_bound = horizon_length, horizon_length 
+        self.num_action = frontier_size # Number of actions 
+
         #self.build_action_children(self.root) 
 
     def get_best_child(self):
@@ -178,12 +180,26 @@ class Tree_C(object):
             vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
         # Return the max node, or a random node if the value is equal
         return random.choice([key for key in vals.keys() if vals[key] == max(vals.values())])
-        
+    
+    #Find leaf node based on UCT criteria
+    def get_next_leaf_node(self, current_node):
+        if(current_node.depth == self.max_depth or current_node.children is None):
+            return current_node
+        else:
+            current_node = self.get_next_child(current_node)
+            return self.get_next_leaf_node(current_node)
+
     def build_action_children(self, parent):
         # print(self.path_generator.get_path_set(parent.pose))
         # print(self.path_generator)
-        actions, dense_paths = self.path_generator.get_path_set(parent.pose)
+        # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
+        goal_vec = []
+        for i in xrange(5):
+            goal, xvals, zvals = self.action_selection_BO(5, self.xvals, self.zvals)
+            goal_vec = np.vstack([goal_vec, goal])
+            self.xvals, self.zvals = xvals, zvals
 
+        actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, goal_vec)
         # print "Actions: ", actions
         free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
         # print "Action set: ", free_actions 
@@ -205,6 +221,35 @@ class Tree_C(object):
                                         dense_path = free_dense_paths[action],
                                         zvals = None))
                 # print("Adding next child: ", parent.name + '_action' + str(i))
+
+    def action_selection_BO(self, num_BO, xvals, zvals):
+        '''
+        Run Bayesian Optimization for action selection in continuous domain 
+        Parameter: 
+            num_BO - Number of iterations for BO 
+            xvals, zvals - Dataset 
+        Return:
+            max_action - 
+            xvals, zvals - Augmented Dataset 
+
+        1. First, if dataset is empty, gather pre-defined number of prior samples to train GP model 
+        2. For fixed # of iterations, run BO with PSO in inner optimization
+        '''
+        if xvals is None:
+            xvals = np.random.rand(num_prior,2)*[self.x_bound, self.y_bound] + self.initial_pose 
+            zvals = self.aquisition_function(time = self.time, xvals = xvals, robot_model = self.belief)
+
+        for i in ranges(num_BO):
+            reward_GP = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.kern)
+            self.optimizer = ParticleSwarmOpt(self.time, self.obstacle_world, reward_GP, self.acquisition_function, pose, self.x_bound, self.y_bound)
+            best_action, reward = self.optimizer.optimization()
+            
+            #Augment dataset 
+            xvals = np.vstack([xvals, best_action])
+            zvals = np.vstack([zvals, reward])
+
+        return max_action, xvals, zvals
+
 
     def collision_check(self, path_dict, path_dense_dict):
         free_paths = {}
@@ -239,9 +284,9 @@ class Tree_C(object):
             return counter
 
 class CBTS(MCTS):
-    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+    def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, horizon_length, frontier_size,
                 path_generator, aquisition_function, f_rew, time):
-        super(CBTS, self): __init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+        super(CBTS, self): __init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, horizon_length, frontier_size,
                 path_generator, aquisition_function, f_rew, time )
         self.ranges = ranges
         self.time = time 
@@ -252,44 +297,37 @@ class CBTS(MCTS):
         self.computation_budget = computation_budget
         self.initial_pose = initial_pose
         self.path_generator = path_generator 
+        self.horizon_length = horizon_length
         # self.optimizer = ParticleSwarmOpt
-        self.x_bound, self.y_bound = 10.0, 10.0 
-        self.num_action = frontier_size # Number of actions 
 
-        self.gp_kern = GPy.kern.RBF(input_dim = self.dim, lengthscale = lengthscale, variance = variance) # kernel of GP for reward 
 
     def get_actions(self):
         # self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.acquisition_function, self.belief, self.initial_pose, self.path_generator, self.time, 
         #                 max_depth = self.max_depth, max_rollout_depth= self.max_rollout_depth, turning_radius = self.turning_radius, 
         #                 param = param, c = self.c, gradient_on=self.gradient_on, grad_step=self.grad_step)
 
-        self.tree = self.initialize_tree()
+        self.tree = Tree_C(self.ranges, self.obstacle_world, self.f_rew, self.f_aqu, self.belief, self.pose, self.time, self.max_depth, self.param, 
+                        self.horizon_length, self.path_generator)
+        current_node = self.tree.root
+
         time_start = time.clock()
 
-        # self.sdf_map = self.generate_sdfmap(self.cp)
         print("Current timestep : ", self.t)
 
-        # if self.sdf_map.is_exist_obstacle():
-        #     print("Here")
-        #     self.sdf_map.train_sdfmap(train_num=10, cp = self.cp)
         iteration = 0
         while time.clock() - time_start < self.budget:
-            current_node = self.tree_policy() #Find maximum UCT node (which is leaf node)
+            current_node = self.tree.get_next_leaf_node(current_node) #Find maximum UCT node (which is leaf node)
             iteration +=1
-            # #Update SDF map
-            # if self.sdf_map is not None:
-            #     print("Here")
-                # self.update_sdfmap(current_node)
 
-            sequence = self.rollout_policy(current_node, self.budget) #Add node
+            reward = self.tree.rollout(current_node, self.belief) #Add node
+            self.tree.backprop(current_node, reward)
             
-            reward = self.get_reward(sequence)
+            # reward = self.get_reward(sequence)
             # print("cur_reward : " + str(reward))
-            value_grad = self.get_value_grad(current_node, sequence, reward)
+            # value_grad = self.get_value_grad(current_node, sequence, reward)
             # if(len(self.tree[sequence[0]])==4):
             #     self.tree[sequence[0]] = (self.tree[sequence[0]][0],self.tree[sequence[0]][1], self.tree[sequence[0]][2], self.tree[sequence[0]][3], value_grad )
             
-            self.backprop(reward, sequence, value_grad)
             ###TODO: After Finish Build functions for update
             # if(self.gradient_on):
             #     self.update_action(reward, sequence, None)
@@ -310,76 +348,23 @@ class CBTS(MCTS):
         else:
             return self.tree[best_sequence][0], cost
 
-    def initialize_tree(self):
-        # '''Creates a tree instance, which is a dictionary, that keeps track of the nodes in the world'''
-        # tree = 
-        #(pose, number of queries)
-        tree['root'] = (self.initial_pose, 0)
 
-        # actions, _ = self.path_generator.get_path_set(self.cp)
-        # feas_actions = self.collision_check(actions)
+    # def tree_policy(self):
+    #     '''Implements the UCB policy with continuous action to select the child to expand and forward simulate'''
+    #     # According to Arora:
+    #     #avg_r average reward of all rollouts that have passed through node n
+    #     #c_p some constant , 0.1 in literature
+    #     #N number of times parent has been evaluated
+    #     #n number of time node n has been evaluated
+    #     #ucb = avg_r + c_p*np.sqrt(2*np.log(N)/n)
+    #     leaf_eval = {}
+    #     for i in xrange(self.frontier_size):
+    #         node = 'child '+ str(i)
+    #         if(node in self.tree): #If 'node' string key value is in current tree. 
+    #             leaf_eval[node] = self.tree[node][2] + self.c*np.sqrt(2*(np.log(self.tree['root'][1]))/(self.tree[node][3]))
+    #     return max(leaf_eval, key=leaf_eval.get)
 
-        for action, samples in feas_actions.items():
-            #(samples, cost, reward, number of times queried)
-            cost = np.sqrt((self.cp[0]-samples[-1][0])**2 + (self.cp[1]-samples[-1][1])**2)
-            tree['child '+ str(action)] = (samples, cost, 0, 0)
-        return tree
 
-
-    def tree_policy(self):
-        '''Implements the UCB policy with continuous action to select the child to expand and forward simulate'''
-        # According to Arora:
-        #avg_r average reward of all rollouts that have passed through node n
-        #c_p some constant , 0.1 in literature
-        #N number of times parent has been evaluated
-        #n number of time node n has been evaluated
-        #ucb = avg_r + c_p*np.sqrt(2*np.log(N)/n)
-        leaf_eval = {}
-        for i in xrange(self.frontier_size):
-            node = 'child '+ str(i)
-            if(node in self.tree): #If 'node' string key value is in current tree. 
-                leaf_eval[node] = self.tree[node][2] + self.c*np.sqrt(2*(np.log(self.tree['root'][1]))/(self.tree[node][3]))
-        return max(leaf_eval, key=leaf_eval.get)
-
-    def action_selection_BO(self, num_BO, xvals, zvals):
-        '''
-        Run Bayesian Optimization for action selection in continuous domain 
-        Parameter: 
-            num_BO - Number of iterations for BO 
-            xvals, zvals - Dataset 
-        Return:
-            max_action - 
-            xvals, zvals - Augmented Dataset 
-
-        1. First, if dataset is empty, gather pre-defined number of prior samples to train GP model 
-        2. For fixed # of iterations, run BO with PSO in inner optimization
-        '''
-        if xvals is None:
-            xvals = np.random.rand(num_prior,2)*[self.x_bound, self.y_bound] + self.initial_pose 
-            zvals = self.aquisition_function(time = self.time, xvals = xvals, robot_model = self.belief)
-
-        for i in ranges(num_BO):
-            reward_GP = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.kern)
-            self.optimizer = ParticleSwarmOpt(self.time, self.obstacle_world, reward_GP, self.acquisition_function, pose, self.x_bound, self.y_bound)
-            best_action, reward = self.optimizer.optimization()
-            
-            #Augment dataset 
-            xvals = np.vstack([xvals, best_action])
-            zvals = np.vstack([zvals, reward])
-
-        return max_action, xvals, zvals
-
-    def get_best_child(self):
-        '''Query the tree for the best child in the actions'''
-        best = -1000
-        best_child = None
-        for i in xrange(self.frontier_size):
-            if('child '+ str(i) in self.tree):
-                r = self.tree['child '+ str(i)][2]
-                if r > best:
-                    best = r
-                    best_child = 'child '+ str(i)
-        return best_child, 0
 
     # def run_optimizer(self, pose):
 

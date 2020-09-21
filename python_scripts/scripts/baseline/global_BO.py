@@ -16,6 +16,7 @@ class ParticleSwarmOpt(object):
         self.sim_world = sim_world
         # self.ranges = ranges
         self.belief = belief 
+        self.pose = pose 
         self.acquisition_function = acquisition_function 
         self.x_bound = x_bound 
         self.y_bound = y_bound 
@@ -29,7 +30,7 @@ class ParticleSwarmOpt(object):
 
         # lower_bound = np.atleast_1d(mean - beta * std_dev)
         # upper_bound = np.atleast_1d(mean - beta * std_dev)
-        value = self.acquisition_function(time=self.time, xvals = particles, robot_model = sim_world)
+        value = self.acquisition_function(time=self.time, xvals = particles, robot_model = self.sim_world)
         
         return value, True  
 

@@ -189,38 +189,47 @@ class Tree_C(object):
             current_node = self.get_next_child(current_node)
             return self.get_next_leaf_node(current_node)
 
-    def build_action_children(self, parent):
+    def tree_policy(self, parent):
         # print(self.path_generator.get_path_set(parent.pose))
         # print(self.path_generator)
         # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
-        goal_vec = []
-        for i in xrange(5):
-            goal, xvals, zvals = self.action_selection_BO(5, self.xvals, self.zvals)
-            goal_vec = np.vstack([goal_vec, goal])
-            self.xvals, self.zvals = xvals, zvals
+        # cur_node = parent 
+        while(parent.depth <=self.max_depth):
+            if(length(parent.children) <self.num_action):
 
-        actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, goal_vec)
-        # print "Actions: ", actions
-        free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
-        # print "Action set: ", free_actions 
-        # actions = self.path_generator.get_path_set(parent.pose)
-        # dense_paths = [0]
-        if len(actions) == 0:
-            print("No actions!")
-            return
-        
-        # print "Creating children for:", parent.name
-        for i, action in enumerate(free_actions.keys()):
-            # print "Action:", parent.name + '_action' + str(i)
-            if len(free_actions[action])!=0:
-                # print free_actions[action]
-                parent.add_children(Node(pose = parent.pose, 
-                                        parent = parent, 
-                                        name = parent.name + '_action' + str(i), 
-                                        action = free_actions[action], 
-                                        dense_path = free_dense_paths[action],
-                                        zvals = None))
-                # print("Adding next child: ", parent.name + '_action' + str(i))
+                goal_vec = []
+                # for i in xrange(self.num_action):
+                goal, xvals, zvals = self.action_selection_BO(5, self.xvals, self.zvals)
+                goal_vec = np.vstack([goal_vec, goal])
+                self.xvals, self.zvals = xvals, zvals
+
+                actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, goal_vec)
+            # print "Actions: ", actions
+                free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
+            # print "Action set: ", free_actions 
+            # actions = self.path_generator.get_path_set(parent.pose)
+            # dense_paths = [0]
+                if len(actions) == 0:
+                    print("No actions!")
+                    return
+                
+                # print "Creating children for:", parent.name
+                for i, action in enumerate(free_actions.keys()):
+                    # print "Action:", parent.name + '_action' + str(i)
+                    if len(free_actions[action])!=0:
+                        # print free_actions[action]
+                        new_node = Node(pose = parent.pose, 
+                                                parent = parent, 
+                                                name = parent.name + '_action' + str(i), 
+                                                action = free_actions[action], 
+                                                dense_path = free_dense_paths[action],
+                                                zvals = None)
+                        parent.add_children(new_node)
+                        # print("Adding next child: ", parent.name + '_action' + str(i))
+                        return new_node 
+            else:
+                # Return best child from current parent node 
+                parent = parent.children[np.argmax([node.nqueries for node in self.parent.children])]
 
     def action_selection_BO(self, num_BO, xvals, zvals):
         '''

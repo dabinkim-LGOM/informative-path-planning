@@ -7,6 +7,7 @@ Optimization is based on particle swarm optimization.
 '''
 from __future__ import print_function, absolute_import, division
 import numpy as np
+import random 
 
 from builtins import range
 
@@ -15,8 +16,9 @@ from builtins import range
 # from pyswarms.utils.functions import single_obj as fx 
 
 class ParticleSwarmOpt(object):
-    def __init__(self, t, sim_world, belief, acquisition_function, pose, x_bound, y_bound):
+    def __init__(self, ranges, t, sim_world, belief, acquisition_function, pose, x_bound, y_bound):
         self.time = t
+        self.ranges = ranges 
         self.sim_world = sim_world
         # self.ranges = ranges
         self.belief = belief 
@@ -24,7 +26,7 @@ class ParticleSwarmOpt(object):
         self.acquisition_function = acquisition_function 
         self.x_bound = x_bound 
         self.y_bound = y_bound 
-        self.bound = [(pose[0]-x_bound, pose[0]+x_bound), (pose[1]-y_bound, pose[1]+y_bound)]
+        self.bound = [( max(pose[0]-x_bound, ranges[0]), min(pose[0]+x_bound,ranges[2]) ), (max(pose[1]-y_bound,ranges[1]), min(pose[1]+y_bound,ranges[3]))]
 
     def fitness_function(self, particles):
         beta = 1.0 
@@ -36,17 +38,21 @@ class ParticleSwarmOpt(object):
         # lower_bound = np.atleast_1d(mean - beta * std_dev)
         # upper_bound = np.atleast_1d(mean - beta * std_dev)
         values = np.empty(shape=(len(particles),1))
+        safe = np.empty(shape=(len(particles),1), dtype=bool)
+        
         for i, particle_pos in enumerate(particles):
             values[i] = self.acquisition_function(time=self.time, xvals = particle_pos, robot_model = self.belief)
+            safe[i] = not (self.sim_world.in_obstacle(particle_pos) or (particle_pos[0] < self.ranges[0]) or particle_pos[0] > self.ranges[2] or particle_pos[1] < self.ranges[1] or particle_pos[1] > self.ranges[3])
         
-        return values, True 
+        return values, safe 
 
     def optimization(self):
-        swarm_size = 50
+        swarm_size = 20
         max_iter = 20 
         velocity = np.full([1,2], 1.)
         # print()
-        particles = np.full([swarm_size,2], self.pose[0:1]) + 2*(np.random.rand(swarm_size, 2)-[0.5,0.5]) * [self.x_bound, self.y_bound]
+        particles = [(random.uniform(self.bound[0][0], self.bound[0][1]), random.uniform(self.bound[1][0], self.bound[1][1])) for _ in range(swarm_size)]
+        # particles = np.full([swarm_size,2], self.pose[0:1]) + 2*(np.random.rand(swarm_size, 2)-[0.5,0.5]) * [self.x_bound, self.y_bound]
 
         swarmopt = SwarmOptimization(swarm_size, velocity, self.fitness_function, self.bound)
         swarmopt.init_swarm(particles)
@@ -181,6 +187,8 @@ class SwarmOptimization(object):
             # find out which particles are improving
             update_set = values > self.best_values
 
+            # print("values", values)
+            # print("safety", safe)
             # update whenever safety and improvement are guaranteed
             update_set &= safe
 

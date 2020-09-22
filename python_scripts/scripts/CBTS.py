@@ -95,12 +95,12 @@ class Tree_C(object):
 
     def get_best_child(self):
         if len(self.root.children)==1:
-            print("length 1")
+            # print("length 1")
             # print(self.root.children[0])
             return self.root.children[0], self.root.children[0].reward
         else:
-            print("length more than 1")
-            print(self.root.children)
+            # print("length more than 1")
+            # print(self.root.children)
             max_nquery = 0
             max_idx = 0
             for i in range(len(self.root.children)):
@@ -200,7 +200,7 @@ class Tree_C(object):
         vals = {}
         # e_d = 0.5 * (1.0 - (3.0/10.0*(self.max_depth - current_node.depth)))
         e_d = 0.5 * (1.0 - (3.0/(10.0*(self.max_depth - current_node.depth))))
-        print(current_node.children)
+        # print(current_node.children)
         for i, child in enumerate(current_node.children):
             #print "Considering child:", child.name, "with queries:", child.nqueries
             if child.nqueries == 0:
@@ -208,8 +208,8 @@ class Tree_C(object):
             # vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
             vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
         # Return the max node, or a random node if the value is equal
-        print(vals.keys())
-        print(vals.values())
+        # print(vals.keys())
+        # print(vals.values())
         return random.choice([key for key in vals.keys() if vals[key] == max(vals.values())])
     
     #Find leaf node based on UCT criteria
@@ -224,11 +224,13 @@ class Tree_C(object):
         # print(self.path_generator.get_path_set(parent.pose))
         # print(self.path_generator)
         # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
-        # cur_node = parent 
-        if(parent.children==None):
-            parent.children = []
-
+        cur_node = parent 
+            
         while(parent.depth <=self.max_depth):
+            if(parent.children==None):
+                parent.children = []
+            print("num action", self.num_action)
+            print("children", parent.children)
             if(len(parent.children) <self.num_action):
 
                 goal_vec = np.empty((0,3))
@@ -264,6 +266,9 @@ class Tree_C(object):
             else:
                 # Return best child from current parent node 
                 parent = parent.children[np.argmax([node.nqueries for node in parent.children])]
+                # return parent.children[np.argmax([node.nqueries for node in parent.children])]
+        # return cur_node.children[np.argmax([node.nqueries for node in cur_node.children])]
+
 
     def action_selection_BO(self, cur_pose, num_BO, xvals, zvals):
         '''
@@ -280,7 +285,7 @@ class Tree_C(object):
         '''
         num_prior = 10
         if xvals is None:
-            print(self.initial_pose)
+            # print(self.initial_pose)
             xvals = np.random.rand(num_prior,2)*[self.x_bound, self.y_bound] + self.initial_pose[0:1].transpose()
             zvals = np.empty(shape=(num_prior,1))
             
@@ -290,14 +295,14 @@ class Tree_C(object):
 
         best_action = cur_pose
         max_reward = -1e5
-        print(xvals)
-        print(zvals)
+        # print(xvals)
+        # print(zvals)
 
         for i in range(num_BO):
             # reward_GP = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.gp_kern)
             reward_GP = GPModel(lengthscale=self.rGP_lengthscale, variance=self.rGP_variance)
             reward_GP.set_data(np.array(xvals), np.array(zvals))
-            self.optimizer = ParticleSwarmOpt(self.time, self.obstacle_world, reward_GP, self.acquisition_function, cur_pose, self.x_bound, self.y_bound)
+            self.optimizer = ParticleSwarmOpt(self.ranges, self.time, self.obstacle_world, reward_GP, self.acquisition_function, cur_pose, self.x_bound, self.y_bound)
             
             cur_pose, reward = self.optimizer.optimization()
             if(reward > max_reward):
@@ -434,7 +439,10 @@ class CBTS(object):
             iteration +=1
 
             reward = self.tree.rollout(current_node, self.belief) #Add node
+            print("Rollout occurs")
             self.tree.backprop(current_node, reward)
+            
+            current_node = self.tree.root
             
             
         self.tree.print_tree()

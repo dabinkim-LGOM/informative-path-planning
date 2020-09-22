@@ -26,7 +26,8 @@ class ParticleSwarmOpt(object):
         self.acquisition_function = acquisition_function 
         self.x_bound = x_bound 
         self.y_bound = y_bound 
-        self.bound = [( max(pose[0]-x_bound, ranges[0]), min(pose[0]+x_bound,ranges[2]) ), (max(pose[1]-y_bound,ranges[1]), min(pose[1]+y_bound,ranges[3]))]
+        self.bound = [ ( max( pose[0]-x_bound, ranges[0]), min(pose[0] + x_bound, ranges[1]) ), (max(pose[1]-y_bound,ranges[2]), min(pose[1]+y_bound,ranges[3]))]
+
 
     def fitness_function(self, particles):
         beta = 1.0 

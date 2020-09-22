@@ -344,7 +344,7 @@ class Nonmyopic_Robot(Robot):
             x1 = data[:,0]
             x2 = data[:,1]
             xlocs = np.vstack([x1, x2]).T
-
+            print('observation point', xlocs)
             self.collect_observations(xlocs)
 
             self.collect_lidar_observations(xlocs)

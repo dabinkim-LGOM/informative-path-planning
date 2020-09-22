@@ -82,7 +82,7 @@ class GPModel:
         
         # If the model hasn't been created yet (can't be created until we have data), create GPy model
         if self.model == None:
-            self.model = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.kern)
+            self.model = GPy.models.GPRegression(np.array(xvals), np.array(zvals), self.kern)
         # Else add to the exisiting model
         else:
             self.model.set_XY(X = np.array(xvals), Y = np.array(zvals))
@@ -105,7 +105,7 @@ class GPModel:
 
         # If the model hasn't been created yet (can't be created until we have data), create GPy model
         if self.model == None:
-            self.model = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.kern)
+            self.model = GPy.models.GPRegression(np.array(xvals), np.array(zvals), self.kern)
 #             self.model.optimize()
         # Else add to the exisiting model
         else:

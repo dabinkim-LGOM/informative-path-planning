@@ -87,7 +87,8 @@ class Tree_C(object):
         self.rGP_lengthscale = lengthscale
         self.rGP_variance = variance
         self.gp_kern = GPy.kern.RBF(input_dim = 2, lengthscale = lengthscale, variance = variance) # kernel of GP for reward 
-        self.x_bound, self.y_bound = horizon_length, horizon_length 
+        self.x_bound = horizon_length
+        self.y_bound = horizon_length 
         self.num_action = frontier_size # Number of actions 
         self.c = c 
 
@@ -143,7 +144,7 @@ class Tree_C(object):
         while cur_depth <= tmp_depth + self.max_rollout_depth:
             actions, dense_paths = self.path_generator.get_path_set(cur_pose)
             
-            selected_action =random.choice(actions) 
+            selected_action = random.choice(actions) 
 
             if(len(selected_action) == 0):
                 return cumul_reward
@@ -225,8 +226,8 @@ class Tree_C(object):
         # print(self.path_generator)
         # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
         cur_node = parent 
-            
-        while(parent.depth <=self.max_depth):
+        num_BO = 3 
+        while(parent.depth <self.max_depth):
             if(parent.children==None):
                 parent.children = []
             print("num action", self.num_action)
@@ -235,7 +236,7 @@ class Tree_C(object):
 
                 goal_vec = np.empty((0,3))
                 # for i in xrange(self.num_action):
-                goal, xvals, zvals = self.action_selection_BO(parent.pose ,5, self.xvals, self.zvals)
+                goal, xvals, zvals = self.action_selection_BO(parent.pose , num_BO, self.xvals, self.zvals)
                 goal_vec = np.vstack([goal_vec, np.append(goal, self.initial_pose[2])])
                 self.xvals, self.zvals = xvals, zvals
                 # print('goal_vec', goal_vec)
@@ -267,6 +268,8 @@ class Tree_C(object):
                 # Return best child from current parent node 
                 parent = parent.children[np.argmax([node.nqueries for node in parent.children])]
                 # return parent.children[np.argmax([node.nqueries for node in parent.children])]
+        if(parent.depth ==self.max_depth):
+            return parent
         # return cur_node.children[np.argmax([node.nqueries for node in cur_node.children])]
 
 

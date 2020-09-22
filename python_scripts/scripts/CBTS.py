@@ -43,7 +43,7 @@ class Node_C(object):
         self.nqueries = 0
 
         self.parent = parent 
-        self.children = []  
+        self.children = None
 
         self.action = action 
         self.dense_path = dense_path 
@@ -51,7 +51,7 @@ class Node_C(object):
             self.depth = 0
         else:
             self.depth = parent.depth +1 
-    
+
     def add_children(self, child_node):
         if self.children is None:
             self.children = [] 
@@ -84,6 +84,8 @@ class Tree_C(object):
 
         variance = 100.0 
         lengthscale = 3.0
+        self.rGP_lengthscale = lengthscale
+        self.rGP_variance = variance
         self.gp_kern = GPy.kern.RBF(input_dim = 2, lengthscale = lengthscale, variance = variance) # kernel of GP for reward 
         self.x_bound, self.y_bound = horizon_length, horizon_length 
         self.num_action = frontier_size # Number of actions 
@@ -92,7 +94,28 @@ class Tree_C(object):
         #self.build_action_children(self.root) 
 
     def get_best_child(self):
-        return self.root.children[np.argmax([node.nqueries for node in self.root.children])]
+        if len(self.root.children)==1:
+            print("length 1")
+            # print(self.root.children[0])
+            return self.root.children[0], self.root.children[0].reward
+        else:
+            print("length more than 1")
+            print(self.root.children)
+            max_nquery = 0
+            max_idx = 0
+            for i in range(len(self.root.children)):
+                nquery = self.root.children[i].nqueries
+                if nquery > max_nquery:
+                    max_nquery = nquery
+                    max_idx = i
+            # max_idx = np.argmax([node.nqueries for node in self.root.children])
+            return self.root.children[max_idx], self.root.children[max_idx].reward 
+            
+        # print(self.root.children)
+        # if len(self.root.children) >1:
+        #     return self.root.children[np.argmax([node.nqueries for node in self.root.children])]
+        # else:
+        #     return self.root.children[0]
 
     def backprop(self, leaf_node, reward):
         if leaf_node.parent is None:
@@ -202,15 +225,18 @@ class Tree_C(object):
         # print(self.path_generator)
         # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
         # cur_node = parent 
+        if(parent.children==None):
+            parent.children = []
+
         while(parent.depth <=self.max_depth):
             if(len(parent.children) <self.num_action):
 
-                goal_vec = []
+                goal_vec = np.empty((0,3))
                 # for i in xrange(self.num_action):
                 goal, xvals, zvals = self.action_selection_BO(parent.pose ,5, self.xvals, self.zvals)
-                goal_vec = np.vstack([goal_vec, goal])
+                goal_vec = np.vstack([goal_vec, np.append(goal, self.initial_pose[2])])
                 self.xvals, self.zvals = xvals, zvals
-
+                # print('goal_vec', goal_vec)
                 actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, goal_vec)
             # print "Actions: ", actions
                 free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
@@ -266,8 +292,11 @@ class Tree_C(object):
         max_reward = -1e5
         print(xvals)
         print(zvals)
+
         for i in range(num_BO):
-            reward_GP = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.gp_kern)
+            # reward_GP = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.gp_kern)
+            reward_GP = GPModel(lengthscale=self.rGP_lengthscale, variance=self.rGP_variance)
+            reward_GP.set_data(np.array(xvals), np.array(zvals))
             self.optimizer = ParticleSwarmOpt(self.time, self.obstacle_world, reward_GP, self.acquisition_function, cur_pose, self.x_bound, self.y_bound)
             
             cur_pose, reward = self.optimizer.optimization()
@@ -280,7 +309,24 @@ class Tree_C(object):
         
         return best_action, xvals, zvals
 
+    def build_initial_action(self, parent):
 
+        self.path_generator.fs = 3 #Number of initial action 
+        actions, dense_paths = self.path_generator.get_path_set(parent.pose)
+
+        free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
+
+        for i, action in enumerate(free_actions.keys()):
+            # print "Action:", parent.name + '_action' + str(i)
+            if len(free_actions[action])!=0:
+                # print free_actions[action]
+                parent.add_children(Node_C(pose = parent.pose, 
+                                        parent = parent, 
+                                        name = parent.name + '_action_initial' + str(i), 
+                                        action = free_actions[action], 
+                                        dense_path = free_dense_paths[action],
+                                        zvals = None))
+                # print("Adding next child: ", parent.name + '_action' + str(i))
     def collision_check(self, path_dict, path_dense_dict):
         free_paths = {}
         dense_free_paths = {}
@@ -379,6 +425,8 @@ class CBTS(object):
         print("Current timestep : ", self.time)
 
         iteration = 0
+
+        self.tree.build_initial_action(self.tree.root)
         while time.clock() - time_start < self.computation_budget:
 
             current_node = self.tree.tree_policy(current_node)
@@ -393,11 +441,11 @@ class CBTS(object):
         print("Rollout number : ", iteration)
         print("Time spent : ", time.clock() - time_start)
 
-        best_child, cost = self.tree.get_best_child()
+        best_child, reward = self.tree.get_best_child()
 
 
         # update_ver = self.update_action(self.tree[best_sequence])
-        return best_child, cost
+        return best_child.action, best_child.dense_path, reward 
 
 
     # def tree_policy(self):

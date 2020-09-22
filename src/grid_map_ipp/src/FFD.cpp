@@ -1,24 +1,24 @@
-#include "ros/ros.h"
-#include <cstdlib>
-#include <ctime>
-#include <queue>
-#include <map>
-#include <algorithm>
+// #include "ros/ros.h"
+// #include <cstdlib>
+// #include <ctime>
+// #include <queue>
+// #include <map>
+// #include <algorithm>
 #include "FFD.hpp"
-#include "nav_msgs/OccupancyGrid.h"
+// #include "nav_msgs/OccupancyGrid.h"
 
 
 using namespace std;
 
-//#define Frontier vector<MyPoint>
-vector<Frontier> frontiersDB;
+namespace grid_map{
+
+    #define Frontier vector<MyPoint>
+    vector<Frontier> frontiersDB;
 
 
 
-
-
-void get_neighbours2(int n_array[], int position, int map_width)
-{
+    void get_neighbours2(int n_array[], int position, int map_width)
+    {
     n_array[0] = position - map_width - 1;
     n_array[1] = position - map_width;
     n_array[2] = position - map_width + 1;
@@ -27,10 +27,46 @@ void get_neighbours2(int n_array[], int position, int map_width)
     n_array[5] = position + map_width - 1;
     n_array[6] = position + map_width;
     n_array[7] = position + map_width + 1;
-}
+    }
+    bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point)
+    {
+    // ROS_INFO("In Frontier Point");
+    // The point under consideration must be known
+    if( abs(map.at("base", point) - 0.5) < 0.2) {
+        return false;
+    }
+    if(map.at("base", point) > OCC_THRESHOLD)
+        return false;
+    grid_map::Size map_size = map.getSize();
+    grid_map::Index locations[N_S]; 
+    get_neighbours(locations, point);
 
-bool is_frontier_point2(const nav_msgs::OccupancyGrid& map, int point, int map_size, int map_width)
-{
+    int found = 0;
+    for(int i = 0; i < N_S; ++i) {
+        // ROS_INFO("Location Index: %d, %d, %d", locations[i](0,0), locations[i](1,0), i);
+        if(is_in_map(map_size, locations[i])) {
+            // ROS_INFO("Outside of Is In Map");
+            // None of the neighbours should be occupied space.		
+            if(map.at("base",locations[i]) > OCC_THRESHOLD) {
+                return false;
+            }
+            //At least one of the neighbours is unknown, hence frontier point
+            if( abs(map.at("base",locations[i]) - 0.5) < 0.2) {
+                found++;
+                //
+                if(found == MIN_FOUND) 
+                    return true;
+            }
+            //}
+        }
+    }
+    // ROS_INFO("Getting Out of Frontier Point");
+    return false;
+
+    }
+
+    bool is_frontier_point2(const nav_msgs::OccupancyGrid& map, int point, int map_size, int map_width)
+    {
     // The point under consideration must be known
     if(map.data[point] != -1)
     {
@@ -52,17 +88,17 @@ bool is_frontier_point2(const nav_msgs::OccupancyGrid& map, int point, int map_s
         }
     }
     return false;
-}
+    }
 
 
-float CrossProduct(float x0,float y0,float x1,float y1,float x2,float y2)
-{
+    float CrossProduct(float x0,float y0,float x1,float y1,float x2,float y2)
+    {
     return (x1 - x0)*(y2 - y0) - (x2 - x0)*(y1 - y0);
-}
+    }
 
-vector<MyPoint> Sort_Polar( vector<MyPoint> lr, MyPoint pose )
-{
-//simple bubblesort
+    vector<MyPoint> Sort_Polar( vector<MyPoint> lr, MyPoint pose )
+    {
+    //simple bubblesort
     bool swapped = 0;
     do
     {
@@ -81,12 +117,12 @@ vector<MyPoint> Sort_Polar( vector<MyPoint> lr, MyPoint pose )
     while(swapped);
 
     return lr;
-}
+    }
 
 
-//Bresenham's line algorithm
-Line Get_Line( MyPoint prev, MyPoint curr )
-{
+    //Bresenham's line algorithm
+    Line Get_Line( MyPoint prev, MyPoint curr )
+    {
     Line output;
 
     int x0=prev.x, y0=prev.y, x1=curr.x, y1=curr.y;
@@ -126,15 +162,15 @@ Line Get_Line( MyPoint prev, MyPoint curr )
 
 
     return output;
-}
+    }
 
-vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width)
-{
+    vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width)
+    {
     int map_size = map_height * map_width;
 
-// polar sort readings according to robot position
+    // polar sort readings according to robot position
     vector<MyPoint> sorted = Sort_Polar(lr,pose);
-// get the contour from laser readings
+    // get the contour from laser readings
     MyPoint prev = sorted.back();
     sorted.pop_back();
     vector<MyPoint> contour;
@@ -148,7 +184,7 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
         }
     }
 
-// extract new frontiers from contour
+    // extract new frontiers from contour
     vector<Frontier> NewFrontiers;
     prev = contour.back(); //Point prev
     contour.pop_back();
@@ -171,7 +207,7 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
             prev = curr;
         }
         else if ( is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width)
-                  &&  is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
+                    &&  is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
         {
             NewFrontiers[NewFrontiers.size()-1].push_back(curr);
             prev = curr;
@@ -186,8 +222,8 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
     }
 
 
-// maintainance of previously detected frontiers
-//Get active area
+    // maintainance of previously detected frontiers
+    //Get active area
     int x_min=-90000,x_max=90000,y_min=-90000,y_max=90000;
     for(unsigned int i=0; i<lr.size(); i++)
     {
@@ -240,7 +276,7 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
         } //for y
     }//for x
 
-//Storing new detected frontiers
+    //Storing new detected frontiers
     int ActiveArea[ map.info.width][map.info.height];
     for(unsigned int i=0; i<frontiersDB.size(); i++)
     {
@@ -275,7 +311,7 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
         }
     }//for i
 
-//remove empty frontier
+    //remove empty frontier
     for(unsigned int i=0; i<frontiersDB.size(); i++)
     {
         if( frontiersDB[i].size() == 0 )
@@ -285,28 +321,30 @@ vector<vector<int> > FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::Occup
     }
 
 
-vector<vector<int> > Result;
-//convert frontierDB to frontiers
-for(unsigned int i=0; i<frontiersDB.size(); i++){
-  vector<int> NewFrontiers;
-  vector<MyPoint> ThisFrontier = frontiersDB[i];
-  for(unsigned int j=0; j<ThisFrontier.size(); j++){
+    vector<vector<int> > Result;
+    //convert frontierDB to frontiers
+    for(unsigned int i=0; i<frontiersDB.size(); i++){
+    vector<int> NewFrontiers;
+    vector<MyPoint> ThisFrontier = frontiersDB[i];
+    for(unsigned int j=0; j<ThisFrontier.size(); j++){
     NewFrontiers.push_back(   ThisFrontier[j].x + (ThisFrontier[j].y * map.info.width) );
-  }
-  Result.push_back(NewFrontiers);
+    }
+    Result.push_back(NewFrontiers);
+    }
+
+
+    vector<int> NewFrontiers2;
+    for(int x=0; x<5; x++){
+    for(int y=0; y<5; y++){
+    NewFrontiers2.push_back( x + (y * map.info.width) );
+    }
+    }
+
+    Result.push_back(NewFrontiers2);
+
+    return Result;
+
+    }//end FFD
+
+
 }
-
-
-vector<int> NewFrontiers2;
-for(int x=0; x<5; x++){
-  for(int y=0; y<5; y++){
-  NewFrontiers2.push_back( x + (y * map.info.width) );
- }
-}
-
-Result.push_back(NewFrontiers2);
-
-return Result;
-
-}//end FFD
-

@@ -25,7 +25,7 @@ from Evaluation import *
 from GPModel import *
 import GridMap_library as sdflib
 from Path_Generator import *
-from global_BO import ParticleSwarmOpt 
+# from global_BO import ParticleSwarmOpt 
 
 
 class MCTS(object):

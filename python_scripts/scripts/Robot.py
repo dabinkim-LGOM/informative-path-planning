@@ -243,6 +243,7 @@ class Nonmyopic_Robot(Robot):
         self.fs = frontier_size
         self.save_fig = is_save_fig
         self.f_rew = f_rew
+        self.horizon_length = horizon_length
         self.gradient_on = gradient_on
         self.grad_step = grad_step
         self.turning_radius = turning_radius
@@ -322,7 +323,7 @@ class Nonmyopic_Robot(Robot):
             # best_path, best_dense_path, cost = mcts.choose_trajectory()    
 
             cbts = cb.CBTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.horizon_length,
-                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t)
+                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t )
             best_path, best_dense_path, cost = cbts.get_actions()
             self.trajectory.append(best_path)
 

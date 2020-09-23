@@ -92,6 +92,7 @@ namespace RayTracer{
             // cout << idx.second << endl;
         }     
         update_map(lidar_free_vec, lidar_collision_vec);
+        cur_scan_ = lidar_collision_vec;
     }
 
 
@@ -186,6 +187,43 @@ namespace RayTracer{
         pair<vector<grid_map::Index>, bool> return_pair = make_pair(free_voxel, false);
 
         return return_pair;
+    }
+
+    std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
+        grid_map::Ft_Detector ft;
+        grid_map::Index cur_idx;
+        //Convert conventional xy to grid_map xy coordinate
+        grid_map::Size size; 
+        size = belief_map_.getSize();
+        int x_size = size(1); int y_size = size(0);
+        
+        grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
+        
+        belief_map_.getIndex(pos_grid, cur_idx);
+        
+        //Update Frontier if there is new scan data 
+        if(cur_scan_.size()>0){
+            ft.update_frontier(cur_idx,cur_scan_, belief_map_);
+            std::cout << "After Update" << std::endl; 
+            vector<vector<grid_map::Index> > frontier_vector = ft.get_frontier();
+            std::cout << "After Get Frontier" << std::endl; 
+            //Convert index from grid_map to conventional xy cooridnate
+            vector<Eigen::Vector2d> frontier_position; 
+            for(int i=0; i<frontier_vector.size(); ++i){
+                for(int j=0; j<frontier_vector.at(i).size(); ++j){
+                    grid_map::Position trans_pos; 
+                    belief_map_.getPosition(frontier_vector.at(i).at(j), trans_pos);
+                    Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, map_size_); 
+                    // conv_pos(0) = x_size /2.0 - trans_pos(1);
+                    // conv_pos(1) = y_size/2.0 + trans_pos(0);
+                    frontier_position.push_back(conv_pos);
+                }
+            }
+            cur_frontier_set_ = frontier_position; 
+            // return frontier_position;
+        }
+
+        return cur_frontier_set_;
     }
 
 

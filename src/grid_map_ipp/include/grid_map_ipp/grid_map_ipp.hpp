@@ -5,6 +5,7 @@
 #include "grid_map_core/iterators/iterators.hpp"
 #include "grid_map_ipp/ObstacleGridConverter.hpp"
 #include "grid_map_ipp/wavefront_frontier_detection.hpp"
+#include "grid_map_ipp/FFD.hpp"
 #include "grid_map_ipp/util.hpp"
 #include "grid_map_ipp/kmeans.hpp"
 // #include "grid_map_ipp/util.hpp"
@@ -26,22 +27,17 @@ namespace RayTracer{
         double x; 
         double y; 
         double yaw;
-
         Pose(double x1, double y1, double yaw1){ x=x1; y=y1; yaw = yaw1; }
-
     };
+
     class Lidar_sensor;
     
     class Raytracer{
         private:            
             grid_map::GridMap gt_map_;
-            // grid_map::LineIterator raytracer_;
 
         public:
-            // RayTracer(grid_map::Index &startIndex, grid_map::Index &endIndex)
-            // {
-            //     // raytracer_(startIndex, endIndex);
-            // }
+
             Raytracer(double map_size_x, double map_size_y, int num_obstacle, std::vector<Eigen::Array4d> obstacles)
             {
                 grid_map::ObstacleGridConverter converter(map_size_x, map_size_y, num_obstacle, obstacles);
@@ -75,6 +71,9 @@ namespace RayTracer{
             grid_map::Size map_size_;
             Raytracer raytracer_;
             string layer_;
+
+            vector<grid_map::Index> cur_scan_; //Current laser scan 
+            vector<Eigen::Vector2d> cur_frontier_set_;
 
             double ft_cluster_r_ = 7.0;
             vector<Eigen::Vector2d> selected_fts_; //euc reference frame
@@ -131,13 +130,13 @@ namespace RayTracer{
             std::unordered_set<int> get_obstacles(){
                 return obstacles_;
             }
-
             void set_belief_map(grid_map::GridMap& gridmap){
                 belief_map_ = gridmap;
             }
             
 
             //Frontier Detector, Return frontier voxels as position(euclidean coordinate); 
+            vector<Eigen::Vector2d > FFD(grid_map::Position pos_euc);
             vector<Eigen::Vector2d > frontier_detection(grid_map::Position cur_pos);
             //Return center position(euc ref) of each cluster. 
             vector<Eigen::Vector2d>  frontier_clustering(vector<Eigen::Vector2d> frontier_pts);

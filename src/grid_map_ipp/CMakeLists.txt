@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED ( VERSION 2.8.12 )
 PROJECT(grid_map_ipp)
-set(ROS_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE "Debug")
 add_definitions(-std=c++17)
 
 
@@ -44,7 +44,9 @@ target_link_libraries(grid_map_ipp_library ${DECOMP_UTIL_LIBRARIES})
 
 # add_executable(test_lidar test/test_lidar.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp)
 # add_executable(test_frontier test/test_frontier.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp)
-add_executable(test_SFC test/test_SFC.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp src/JPS.cpp src/SFC.cpp src/util.cpp)
+# add_executable(test_SFC test/test_SFC.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp src/JPS.cpp src/SFC.cpp src/util.cpp)
+add_executable(test_FFD test/test_FFD.cpp src/FFD.cpp src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp src/JPS.cpp src/SFC.cpp src/util.cpp)
+
 
 # target_include_directories(test_lidar PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
 #                                              ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
@@ -56,10 +58,16 @@ add_executable(test_SFC test/test_SFC.cpp src/grid_map_ipp.cpp src/ObstacleGridC
 #                           ${grid_map_sdf_INCLUDE_DIRS}
 #                           )
               
-target_include_directories(test_SFC PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
+# target_include_directories(test_SFC PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
+#                           ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
+#                           ${grid_map_sdf_INCLUDE_DIRS}  ${decomp_ros_utils_INCLUDE_DIRS}
+#                           )
+
+target_include_directories(test_FFD PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_core_INCLUDE_DIRS}
                           ${grid_map_ros_INCLUDE_DIRS} ${grid_map_msgs_INCLUDE_DIRS} 
                           ${grid_map_sdf_INCLUDE_DIRS}  ${decomp_ros_utils_INCLUDE_DIRS}
                           )
+
 
 # target_link_libraries(test_lidar ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
 #                                  ${grid_map_sdf_LIBRARIES}  
@@ -68,10 +76,15 @@ target_include_directories(test_SFC PUBLIC ${Eigen3_INCLUDE_DIRS} ${grid_map_cor
 # target_link_libraries(test_frontier ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
 #                       ${grid_map_sdf_LIBRARIES}  
 #                       ${grid_map_ipp_LIBRARIES})
-target_link_libraries(test_SFC ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
+# target_link_libraries(test_SFC ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
+#                       ${grid_map_sdf_LIBRARIES}  
+#                       ${grid_map_ipp_LIBRARIES} ${decomp_ros_utils_LIBRARIES})
+
+target_link_libraries(test_FFD ${Eigen3_LIBRARIES} ${grid_map_core_LIBRARIES} ${grid_map_ros_LIBRARIES}
                       ${grid_map_sdf_LIBRARIES}  
                       ${grid_map_ipp_LIBRARIES} ${decomp_ros_utils_LIBRARIES})
-                                 
+
+                      
 
 set(PYBIND11_CPP_STANDARD -std=c++11)
 find_package(pybind11 PATHS /usr/local/share/cmake/pybind11)

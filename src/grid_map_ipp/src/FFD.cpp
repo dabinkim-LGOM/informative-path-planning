@@ -4,7 +4,7 @@
 // #include <queue>
 // #include <map>
 // #include <algorithm>
-#include "FFD.hpp"
+#include "grid_map_ipp/FFD.hpp"
 // #include "nav_msgs/OccupancyGrid.h"
 const double OCC_THRESHOLD = 0.85;
 const double FREE_THRESHOLD = 0.15;
@@ -16,8 +16,6 @@ using namespace std;
 
 namespace grid_map{
 
-    #define Frontier vector<MyPoint>
-    vector<Frontier> frontiersDB;
 
     bool Ft_Detector::is_in_map(grid_map::Size map_size, grid_map::Index cur_index)
     {   
@@ -133,7 +131,7 @@ namespace grid_map{
             swapped = 0;
             for(unsigned int i=1; i<lr.size(); i++)
             {
-                if( CrossProduct(pose.x,pose.y,lr[i-1].x,lr[i-2].y,lr[i].x,lr[i].y) >= 0 )  //sorting clockwise
+                if( CrossProduct(pose.x,pose.y,lr[i-1].x,lr[i-1].y,lr[i].x,lr[i].y) > 0 )  //sorting clockwise
                 {
                     MyPoint swap = lr[i-1];
                     lr[i-1] = lr[i];
@@ -191,16 +189,29 @@ namespace grid_map{
         return output;
     }
 
-    vector<vector<int> > Ft_Detector::FFD( MyPoint pose, vector<MyPoint> lr, const grid_map::GridMap& map, int map_height, int map_width){
-        int map_size = map_height * map_width;
+
+
+    vector<vector<grid_map::Index> > Ft_Detector::FFD( grid_map::Index pose_idx, vector<grid_map::Index> lr_idx, const grid_map::GridMap& map){
 
         // polar sort readings according to robot position
-        vector<MyPoint> sorted = Sort_Polar(lr,pose);
+        MyPoint pose_mp; pose_mp.x = pose_idx[0]; pose_mp.y = pose_idx[1];
+
+        vector<MyPoint> lr;
+        for(int i=0; i<lr_idx.size(); i++){
+            MyPoint cur_pt; cur_pt.x = lr_idx[i][0]; cur_pt.y = lr_idx[i][1];
+            lr.push_back(cur_pt);
+            std::cout << "x: " << cur_pt.x << "y: " << cur_pt.y << std::endl;
+        }
+        std::cout << "Size of laser scan: " << lr.size() << std::endl; 
+
+        std::cout << "CHECKPT 0" << std::endl;
+        vector<MyPoint> sorted = Sort_Polar(lr,pose_mp);
         // get the contour from laser readings
         MyPoint prev = sorted.back();
         sorted.pop_back();
         vector<MyPoint> contour;
 
+        std::cout << "CHECKPT 1" << std::endl;
         for(unsigned int i=0; i<sorted.size(); i++)
         {
             Line line = Get_Line(prev, sorted[i]);
@@ -210,30 +221,34 @@ namespace grid_map{
             }
         }
 
+        std::cout << "CHECKPT 2" << std::endl;
         // extract new frontiers from contour
         vector<Frontier> NewFrontiers;
         prev = contour.back(); //Point prev
         contour.pop_back();
 
-
-        if ( is_frontier_point(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
+        grid_map::Index prev_idx(prev.x, prev.y);
+        if ( is_frontier_point(map, prev_idx) )
         {
             Frontier newFrontier;
             NewFrontiers.push_back(newFrontier);
         }
+
         for(unsigned int i=0; i<contour.size(); i++)
         {
             MyPoint curr = contour[i];
-            if( !is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width) )
+            grid_map::Index curr_idx(curr.x, curr.y);
+            if( !is_frontier_point(map, curr_idx) )
             {
                 prev = curr;
             }
-            else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
+            // else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
+            else if ( std::abs(map.at("base", curr_idx) - 0.5) > 0.2)
             {
                 prev = curr;
             }
-            else if ( is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width)
-                        &&  is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
+            else if ( is_frontier_point(map, curr_idx)
+                        &&  is_frontier_point(map, prev_idx) )
             {
                 NewFrontiers[NewFrontiers.size()-1].push_back(curr);
                 prev = curr;
@@ -247,16 +262,16 @@ namespace grid_map{
             }
         }
 
-
+        std::cout << "CHECKPT 3" << std::endl;
         // maintainance of previously detected frontiers
         //Get active area
         int x_min=-90000,x_max=90000,y_min=-90000,y_max=90000;
         for(unsigned int i=0; i<lr.size(); i++)
         {
-            x_max = max(x_max,lr[i].x);
-            y_max = max(y_max,lr[i].y);
-            x_min = min(x_min,lr[i].x);
-            y_min = min(y_min,lr[i].y);
+            x_max = min(x_max,lr[i].x);
+            y_max = min(y_max,lr[i].y);
+            x_min = max(x_min,lr[i].x);
+            y_min = max(y_min,lr[i].y);
         }
 
         for(int x=x_min; x<=x_max; x++)
@@ -266,7 +281,8 @@ namespace grid_map{
                 MyPoint p;
                 p.x = x;
                 p.y = y;
-                if( is_frontier_point2(map, (p.x + p.y * map_width)  ,map_size,map_width) )
+                grid_map::Index p_idx(x, y);
+                if( is_frontier_point(map, p_idx) )
                 {
                     // split the current frontier into two partial frontiers
                     int Enables_f = -1;
@@ -302,8 +318,10 @@ namespace grid_map{
             } //for y
         }//for x
 
+        std::cout << "CHECKPT 4" << std::endl;
         //Storing new detected frontiers
-        int ActiveArea[ map.info.width][map.info.height];
+        grid_map::Size mapsize = map.getSize();
+        int ActiveArea[ mapsize[0]][mapsize[1]];
         for(unsigned int i=0; i<frontiersDB.size(); i++)
         {
             for(unsigned int j=0; j<frontiersDB[i].size(); j++)
@@ -335,7 +353,7 @@ namespace grid_map{
                 frontiersDB.push_back(f);
             }
         }//for i
-
+        std::cout << "CHECKPT 5" << std::endl;
         //remove empty frontier
         for(unsigned int i=0; i<frontiersDB.size(); i++)
         {
@@ -346,210 +364,220 @@ namespace grid_map{
         }
 
 
-        vector<vector<int> > Result;
+        vector<vector<grid_map::Index> > Result;
         //convert frontierDB to frontiers
         for(unsigned int i=0; i<frontiersDB.size(); i++){
-        vector<int> NewFrontiers;
-        vector<MyPoint> ThisFrontier = frontiersDB[i];
-        for(unsigned int j=0; j<ThisFrontier.size(); j++){
-        NewFrontiers.push_back(   ThisFrontier[j].x + (ThisFrontier[j].y * map.info.width) );
-        }
-        Result.push_back(NewFrontiers);
-        }
-
-
-        vector<int> NewFrontiers2;
-        for(int x=0; x<5; x++){
-        for(int y=0; y<5; y++){
-        NewFrontiers2.push_back( x + (y * map.info.width) );
-        }
+            vector<grid_map::Index> NewFrontiers;
+            vector<MyPoint> ThisFrontier = frontiersDB[i];
+            for(unsigned int j=0; j<ThisFrontier.size(); j++){
+                grid_map::Index cur_idx(ThisFrontier[j].x, ThisFrontier[j].y);
+                NewFrontiers.push_back(cur_idx );
+            }
+            Result.push_back(NewFrontiers);
         }
 
-        Result.push_back(NewFrontiers2);
+        std::cout << "CHECKPT 6" << std::endl;
+        // vector<int> NewFrontiers2;
+        // for(int x=0; x<5; x++){
+        // for(int y=0; y<5; y++){
+        // NewFrontiers2.push_back( x + (y * mapsize[0]) );
+        // }
+        // }
+
+        // Result.push_back(NewFrontiers2);
 
         return Result;
 
     }//end FFD
 
-    vector<vector<int> > Ft_Detector::FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width){
-        int map_size = map_height * map_width;
-
-        // polar sort readings according to robot position
-        vector<MyPoint> sorted = Sort_Polar(lr,pose);
-        // get the contour from laser readings
-        MyPoint prev = sorted.back();
-        sorted.pop_back();
-        vector<MyPoint> contour;
-
-        for(unsigned int i=0; i<sorted.size(); i++)
-        {
-            Line line = Get_Line(prev, sorted[i]);
-            for(unsigned int j=0; j<line.points.size(); j++)
-            {
-                contour.push_back(line.points[j]);
-            }
-        }
-
-        // extract new frontiers from contour
-        vector<Frontier> NewFrontiers;
-        prev = contour.back(); //Point prev
-        contour.pop_back();
 
 
-        if ( is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
-        {
-            Frontier newFrontier;
-            NewFrontiers.push_back(newFrontier);
-        }
-        for(unsigned int i=0; i<contour.size(); i++)
-        {
-            MyPoint curr = contour[i];
-            if( !is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width) )
-            {
-                prev = curr;
-            }
-            else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
-            {
-                prev = curr;
-            }
-            else if ( is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width)
-                        &&  is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
-            {
-                NewFrontiers[NewFrontiers.size()-1].push_back(curr);
-                prev = curr;
-            }
-            else
-            {
-                Frontier newFrontier;
-                newFrontier.push_back(curr);
-                NewFrontiers.push_back(newFrontier);
-                prev = curr;
-            }
-        }
 
 
-        // maintainance of previously detected frontiers
-        //Get active area
-        int x_min=-90000,x_max=90000,y_min=-90000,y_max=90000;
-        for(unsigned int i=0; i<lr.size(); i++)
-        {
-            x_max = max(x_max,lr[i].x);
-            y_max = max(y_max,lr[i].y);
-            x_min = min(x_min,lr[i].x);
-            y_min = min(y_min,lr[i].y);
-        }
-
-        for(int x=x_min; x<=x_max; x++)
-        {
-            for(int y=y_min; y<=y_max; y++)
-            {
-                MyPoint p;
-                p.x = x;
-                p.y = y;
-                if( is_frontier_point2(map, (p.x + p.y * map_width)  ,map_size,map_width) )
-                {
-                    // split the current frontier into two partial frontiers
-                    int Enables_f = -1;
-                    int Enables_p = -1;
-                    for(unsigned int i=0; i<frontiersDB.size(); i++)
-                    {
-                        for(unsigned int j=0; j<frontiersDB[i].size(); j++)
-                        {
-                            if(  frontiersDB[i][j].x == p.x && frontiersDB[i][j].y == p.y )
-                            {
-                                Enables_f = i;
-                                Enables_p = j;
-                            }
-                        }//for j
-                    }//for i
-
-                    if(Enables_f == -1 || Enables_p == -1)
-                        continue;
-
-                    Frontier f1;
-                    Frontier f2;
-                    for(int i=0; i<=Enables_p; i++)
-                    {
-                        f1.push_back( frontiersDB[Enables_f][i] );
-                    }
-                    for(unsigned int i=Enables_p+1; i<frontiersDB[Enables_f].size(); i++)
-                    {
-                        f2.push_back( frontiersDB[Enables_f][i] );
-                    }
-                    frontiersDB.erase(frontiersDB.begin() + Enables_f);
-                }//if p is a frontier
-
-            } //for y
-        }//for x
-
-        //Storing new detected frontiers
-        int ActiveArea[ map.info.width][map.info.height];
-        for(unsigned int i=0; i<frontiersDB.size(); i++)
-        {
-            for(unsigned int j=0; j<frontiersDB[i].size(); j++)
-            {
-                ActiveArea[frontiersDB[i][j].x][frontiersDB[i][j].y] = i;
-            }
-        }
-        for(unsigned int i=0; i<NewFrontiers.size(); i++)
-        {
-            Frontier f = NewFrontiers[i];
-            bool overlap = 0;
-            for(unsigned int j=0; j<f.size(); j++)
-            {
-                if( ActiveArea[f[j].x][f[j].y] != 0 ) //overlap
-                {
-                    int exists = ActiveArea[f[j].x][f[j].y];
-                    //merge f and exists
-                    for(unsigned int merged=0; merged<f.size(); merged++)
-                    {
-                        frontiersDB[exists].push_back(f[merged]);
-                    }
-                    NewFrontiers[i].clear();
-                    overlap = 1;
-                    break;
-                }
-            }//for j
-            if(overlap == 0)
-            {
-                frontiersDB.push_back(f);
-            }
-        }//for i
-
-        //remove empty frontier
-        for(unsigned int i=0; i<frontiersDB.size(); i++)
-        {
-            if( frontiersDB[i].size() == 0 )
-            {
-                frontiersDB.erase(frontiersDB.begin() + i);
-            }
-        }
 
 
-        vector<vector<int> > Result;
-        //convert frontierDB to frontiers
-        for(unsigned int i=0; i<frontiersDB.size(); i++){
-        vector<int> NewFrontiers;
-        vector<MyPoint> ThisFrontier = frontiersDB[i];
-        for(unsigned int j=0; j<ThisFrontier.size(); j++){
-        NewFrontiers.push_back(   ThisFrontier[j].x + (ThisFrontier[j].y * map.info.width) );
-        }
-        Result.push_back(NewFrontiers);
-        }
 
 
-        vector<int> NewFrontiers2;
-        for(int x=0; x<5; x++){
-        for(int y=0; y<5; y++){
-        NewFrontiers2.push_back( x + (y * map.info.width) );
-        }
-        }
 
-        Result.push_back(NewFrontiers2);
+    // vector<vector<int> > Ft_Detector::FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width){
+    //     int map_size = map_height * map_width;
 
-        return Result;
+    //     // polar sort readings according to robot position
+    //     vector<MyPoint> sorted = Sort_Polar(lr,pose);
+    //     // get the contour from laser readings
+    //     MyPoint prev = sorted.back();
+    //     sorted.pop_back();
+    //     vector<MyPoint> contour;
 
-    }//end FFD
+    //     for(unsigned int i=0; i<sorted.size(); i++)
+    //     {
+    //         Line line = Get_Line(prev, sorted[i]);
+    //         for(unsigned int j=0; j<line.points.size(); j++)
+    //         {
+    //             contour.push_back(line.points[j]);
+    //         }
+    //     }
+
+    //     // extract new frontiers from contour
+    //     vector<Frontier> NewFrontiers;
+    //     prev = contour.back(); //Point prev
+    //     contour.pop_back();
+
+
+    //     if ( is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
+    //     {
+    //         Frontier newFrontier;
+    //         NewFrontiers.push_back(newFrontier);
+    //     }
+    //     for(unsigned int i=0; i<contour.size(); i++)
+    //     {
+    //         MyPoint curr = contour[i];
+    //         if( !is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width) )
+    //         {
+    //             prev = curr;
+    //         }
+    //         else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
+    //         {
+    //             prev = curr;
+    //         }
+    //         else if ( is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width)
+    //                     &&  is_frontier_point2(map, (prev.x + prev.y * map_width)  ,map_size,map_width) )
+    //         {
+    //             NewFrontiers[NewFrontiers.size()-1].push_back(curr);
+    //             prev = curr;
+    //         }
+    //         else
+    //         {
+    //             Frontier newFrontier;
+    //             newFrontier.push_back(curr);
+    //             NewFrontiers.push_back(newFrontier);
+    //             prev = curr;
+    //         }
+    //     }
+
+
+    //     // maintainance of previously detected frontiers
+    //     //Get active area
+    //     int x_min=-90000,x_max=90000,y_min=-90000,y_max=90000;
+    //     for(unsigned int i=0; i<lr.size(); i++)
+    //     {
+    //         x_max = max(x_max,lr[i].x);
+    //         y_max = max(y_max,lr[i].y);
+    //         x_min = min(x_min,lr[i].x);
+    //         y_min = min(y_min,lr[i].y);
+    //     }
+
+    //     for(int x=x_min; x<=x_max; x++)
+    //     {
+    //         for(int y=y_min; y<=y_max; y++)
+    //         {
+    //             MyPoint p;
+    //             p.x = x;
+    //             p.y = y;
+    //             if( is_frontier_point2(map, (p.x + p.y * map_width)  ,map_size,map_width) )
+    //             {
+    //                 // split the current frontier into two partial frontiers
+    //                 int Enables_f = -1;
+    //                 int Enables_p = -1;
+    //                 for(unsigned int i=0; i<frontiersDB.size(); i++)
+    //                 {
+    //                     for(unsigned int j=0; j<frontiersDB[i].size(); j++)
+    //                     {
+    //                         if(  frontiersDB[i][j].x == p.x && frontiersDB[i][j].y == p.y )
+    //                         {
+    //                             Enables_f = i;
+    //                             Enables_p = j;
+    //                         }
+    //                     }//for j
+    //                 }//for i
+
+    //                 if(Enables_f == -1 || Enables_p == -1)
+    //                     continue;
+
+    //                 Frontier f1;
+    //                 Frontier f2;
+    //                 for(int i=0; i<=Enables_p; i++)
+    //                 {
+    //                     f1.push_back( frontiersDB[Enables_f][i] );
+    //                 }
+    //                 for(unsigned int i=Enables_p+1; i<frontiersDB[Enables_f].size(); i++)
+    //                 {
+    //                     f2.push_back( frontiersDB[Enables_f][i] );
+    //                 }
+    //                 frontiersDB.erase(frontiersDB.begin() + Enables_f);
+    //             }//if p is a frontier
+
+    //         } //for y
+    //     }//for x
+
+    //     //Storing new detected frontiers
+    //     int ActiveArea[ map.info.width][map.info.height];
+    //     for(unsigned int i=0; i<frontiersDB.size(); i++)
+    //     {
+    //         for(unsigned int j=0; j<frontiersDB[i].size(); j++)
+    //         {
+    //             ActiveArea[frontiersDB[i][j].x][frontiersDB[i][j].y] = i;
+    //         }
+    //     }
+    //     for(unsigned int i=0; i<NewFrontiers.size(); i++)
+    //     {
+    //         Frontier f = NewFrontiers[i];
+    //         bool overlap = 0;
+    //         for(unsigned int j=0; j<f.size(); j++)
+    //         {
+    //             if( ActiveArea[f[j].x][f[j].y] != 0 ) //overlap
+    //             {
+    //                 int exists = ActiveArea[f[j].x][f[j].y];
+    //                 //merge f and exists
+    //                 for(unsigned int merged=0; merged<f.size(); merged++)
+    //                 {
+    //                     frontiersDB[exists].push_back(f[merged]);
+    //                 }
+    //                 NewFrontiers[i].clear();
+    //                 overlap = 1;
+    //                 break;
+    //             }
+    //         }//for j
+    //         if(overlap == 0)
+    //         {
+    //             frontiersDB.push_back(f);
+    //         }
+    //     }//for i
+
+    //     //remove empty frontier
+    //     for(unsigned int i=0; i<frontiersDB.size(); i++)
+    //     {
+    //         if( frontiersDB[i].size() == 0 )
+    //         {
+    //             frontiersDB.erase(frontiersDB.begin() + i);
+    //         }
+    //     }
+
+
+    //     vector<vector<int> > Result;
+    //     //convert frontierDB to frontiers
+    //     for(unsigned int i=0; i<frontiersDB.size(); i++){
+    //     vector<int> NewFrontiers;
+    //     vector<MyPoint> ThisFrontier = frontiersDB[i];
+    //     for(unsigned int j=0; j<ThisFrontier.size(); j++){
+    //     NewFrontiers.push_back(   ThisFrontier[j].x + (ThisFrontier[j].y * map.info.width) );
+    //     }
+    //     Result.push_back(NewFrontiers);
+    //     }
+
+
+    //     vector<int> NewFrontiers2;
+    //     for(int x=0; x<5; x++){
+    //     for(int y=0; y<5; y++){
+    //     NewFrontiers2.push_back( x + (y * map.info.width) );
+    //     }
+    //     }
+
+    //     Result.push_back(NewFrontiers2);
+
+    //     return Result;
+
+    // }//end FFD
 
 
 }

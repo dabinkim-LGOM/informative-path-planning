@@ -61,7 +61,7 @@ namespace grid_map{
     bool Ft_Detector::is_frontier_point(const grid_map::GridMap& map, grid_map::Index point){
         // ROS_INFO("In Frontier Point");
         // The point under consideration must be known
-        if( abs(map.at("base", point) - 0.5) < 0.2) {
+        if( abs(map.at("base", point) - 0.5) < FREE_THRESHOLD) {
             return false;
         }
         if(map.at("base", point) > OCC_THRESHOLD)
@@ -233,36 +233,37 @@ namespace grid_map{
             Frontier newFrontier;
             NewFrontiers.push_back(newFrontier);
         }
-
+        int type1 = 0; int type2 = 0; int type3 = 0; int type4 = 0;
         for(unsigned int i=0; i<contour.size(); i++)
         {
             MyPoint curr = contour[i];
             grid_map::Index curr_idx(curr.x, curr.y);
             if( !is_frontier_point(map, curr_idx) )
-            {
+            {   type1++; 
                 prev = curr;
             }
             // else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
             else if ( std::abs(map.at("base", curr_idx) - 0.5) > 0.2)
-            {
+            {   type2++; 
                 prev = curr;
             }
             else if ( is_frontier_point(map, curr_idx)
                         &&  is_frontier_point(map, prev_idx) )
-            {
+            {   type3++;
                 NewFrontiers[NewFrontiers.size()-1].push_back(curr);
                 prev = curr;
             }
             else
-            {
+            {   type4++;
                 Frontier newFrontier;
                 newFrontier.push_back(curr);
                 NewFrontiers.push_back(newFrontier);
                 prev = curr;
             }
         }
-
-        std::cout << "CHECKPT 3" << std::endl;
+        std::cout << "Type1: " << type1 << " Type2: " << type2 << " Type3: " << type3 << " Type4: " << type4 << std::endl; 
+        std::cout << "# of Contour: " << contour.size()<<  std::endl;
+        std::cout << "# of New Frontiers: " << NewFrontiers.size() << std::endl; 
         // maintainance of previously detected frontiers
         //Get active area
         int x_min=-90000,x_max=90000,y_min=-90000,y_max=90000;
@@ -385,7 +386,8 @@ namespace grid_map{
         // }
 
         // Result.push_back(NewFrontiers2);
-
+        std::cout << "# of Frontier DB: " << frontiersDB.size() << std::endl; 
+        std::cout << "Number of resulting Frontiers: " << Result.size() << std::endl; 
         return Result;
 
     }//end FFD

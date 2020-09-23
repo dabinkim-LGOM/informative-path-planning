@@ -222,6 +222,9 @@ namespace RayTracer{
             cur_frontier_set_ = frontier_position; 
             // return frontier_position;
         }
+        else{
+            std::cout << "##########There is no new scan#############" << std::endl; 
+        }
 
         return cur_frontier_set_;
     }

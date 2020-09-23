@@ -112,8 +112,8 @@ int main(int argc, char** argv)
     grid_map::GridMap gt_map = converter.GridMapConverter();
 
     
-    for(int i=0; i< 80; i++){
-        for(int j=0; j<80; j++){
+    for(int i=0; i< 50; i++){
+        for(int j=0; j<50; j++){
             grid_map::Index idx(i,j);
             gt_map.at("base", idx) = 0.5;
         }
@@ -165,7 +165,7 @@ int main(int argc, char** argv)
     // cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
     
     vector<geometry_msgs::Point> pt_vec; 
-    std::cout << "Size of frontier pos" << frontier_pos.size() << std::endl; 
+    std::cout << "Size of frontier pos " << frontier_pos.size() << std::endl; 
     for(int i=0; i< frontier_pos.size(); i++){
         double r = dis(gen)/20.0; 
         // for(int j=0; j<frontier_pos.at(i).size(); j++){

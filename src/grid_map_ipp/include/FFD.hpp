@@ -33,6 +33,9 @@ namespace grid_map{
         std::vector<MyPoint> Sort_Polar( std::vector<MyPoint> lr, MyPoint pose);
         Line Get_Line( MyPoint prev, MyPoint curr );
 
+        bool is_in_map(grid_map::Size map_size, grid_map::Index cur_index);
+        void get_neighbours(grid_map::Index n_array[], grid_map::Index position);
+        bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point);
     };
 }
 

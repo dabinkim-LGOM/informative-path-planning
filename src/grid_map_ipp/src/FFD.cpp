@@ -94,30 +94,6 @@ namespace grid_map{
 
     }
 
-    // bool is_frontier_point2(const nav_msgs::OccupancyGrid& map, int point, int map_size, int map_width){
-    //     // The point under consideration must be known
-    //     if(map.data[point] != -1)
-    //     {
-    //         return false;
-    //     }
-    //     //
-    //     int locations[8];
-    //     get_neighbours2(locations, point, map_width);
-    //     for(int i = 0; i < 8; i++)
-    //     {
-    //         if(locations[i] < map_size && locations[i] >= 0)
-    //         {
-    //             //At least one of the neighbours is open and known space, hence frontier point //AANPASSING
-    //             //if(map.data[locations[i]] < OCC_THRESHOLD && map.data[locations[i]] >= 0) {
-    //             if(map.data[locations[i]] == -1)
-    //             {
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // }
-
 
     float CrossProduct(float x0,float y0,float x1,float y1,float x2,float y2){
         return (x1 - x0)*(y2 - y0) - (x2 - x0)*(y1 - y0);

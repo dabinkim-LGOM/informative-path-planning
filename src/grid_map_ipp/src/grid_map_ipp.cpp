@@ -196,11 +196,11 @@ namespace RayTracer{
         grid_map::Size size; 
         size = belief_map_.getSize();
         int x_size = size(1); int y_size = size(0);
-        
+         
         grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
         
         belief_map_.getIndex(pos_grid, cur_idx);
-        
+         
         //Update Frontier if there is new scan data 
         if(cur_scan_.size()>0){
             ft.update_frontier(cur_idx,cur_scan_, belief_map_);

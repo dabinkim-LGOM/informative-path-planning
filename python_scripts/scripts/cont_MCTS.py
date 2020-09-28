@@ -1,3 +1,10 @@
+'''
+Continuous Action MCTS without Tree Refinement.
+Tree structure is divided into conti-action depth and discrete-action depth. 
+Value gradient update is used for continuous update in action space. 
+Double Progressive Widening is adapted into only discrete-action depth. 
+'''
+
 from matplotlib import pyplot as plt
 import matplotlib
 from matplotlib.colors import LogNorm
@@ -31,7 +38,8 @@ from MCTS import *
 
 
 class Node(object):
-    def __init__(self, pose, parent, name, action = None, dense_path = None, zvals = None):
+    def __init__(self, pose, parent, name, action = None, dense_path = None, zvals = None, is_cont = False):
+        #is_cont : is this node is a element of continuous-action node set?
         self.pose = pose
         self.name = name
         self.zvals = zvals 
@@ -43,10 +51,20 @@ class Node(object):
 
         self.action = action 
         self.dense_path = dense_path 
+        self.is_cont = is_cont # is cont = true: No dpw, false: dpw
+        # if self.is_cont:
+        #     self.max_action = 
+
         if parent is None:
             self.depth = 0
         else:
             self.depth = parent.depth +1 
+
+    def set_max_action(self, max_action, alpha):
+        if self.is_cont:
+            self.max_action = max_action
+        else:
+            self.max_action = math.floor(math.log(max_action,alpha)) # Based on progressive widening 
 
     def add_children(self, child_node):
         if self.children is None:
@@ -76,33 +94,26 @@ class Tree(object):
         self.xvals = None 
         self.zvals = None 
         self.initial_pose = pose 
-        self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, zvals = None)  
+        self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, zvals = None, is_cont=True)  
 
-        variance = 100.0 
-        lengthscale = 3.0
-        self.rGP_lengthscale = lengthscale
-        self.rGP_variance = variance
-        self.gp_kern = GPy.kern.RBF(input_dim = 2, lengthscale = lengthscale, variance = variance) # kernel of GP for reward 
-        self.x_bound = horizon_length
-        self.y_bound = horizon_length 
         self.num_action = frontier_size # Number of actions 
         self.c = c 
 
         #self.build_action_children(self.root) 
 
     def get_best_child(self):
-        if len(self.root.children)==1:
-            return self.root.children[0], self.root.children[0].reward
-        else:
-            max_nquery = 0
-            max_idx = 0
-            for i in range(len(self.root.children)):
-                nquery = self.root.children[i].nqueries
-                if nquery > max_nquery:
-                    max_nquery = nquery
-                    max_idx = i
-            # max_idx = np.argmax([node.nqueries for node in self.root.children])
-            return self.root.children[max_idx], self.root.children[max_idx].reward 
+        # if len(self.root.children)==1:
+        #     return self.root.children[0], self.root.children[0].reward
+        # else:
+        max_nquery = 0
+        max_idx = 0
+        for i in range(len(self.root.children)):
+            nquery = self.root.children[i].nqueries
+            if nquery > max_nquery:
+                max_nquery = nquery
+                max_idx = i
+        # max_idx = np.argmax([node.nqueries for node in self.root.children])
+        return self.root.children[max_idx], self.root.children[max_idx].reward 
             
         # print(self.root.children)
         # if len(self.root.children) >1:
@@ -128,11 +139,16 @@ class Tree(object):
             return
     
     
-    def rollout(self, current_node, belief):
+    def rollout(self, current_node):
+        '''
+        Rollout function returns measurment observation positions from current node with random policy.
+        This gives samples rather than rewards
+        '''
         cur_depth = current_node.depth
         tmp_depth = cur_depth 
         cur_pose = current_node.pose 
         cumul_reward = 0.0 
+        cumul_measruement = np.empty(shape=(0,2))
         while cur_depth <= tmp_depth + self.max_rollout_depth:
             actions, dense_paths = self.path_generator.get_path_set(cur_pose)
             
@@ -145,22 +161,25 @@ class Tree(object):
             
             obs = np.array(cur_pose)
             xobs = np.vstack([obs[0], obs[1]]).T
+            cumul_measruement = np.vstack(cumul_measruement, xobs)
+            # zobs = self.belief.predict_value(xobs)
 
-            if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
-                r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            elif self.f_rew == 'exp_improve':
-                r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            elif self.f_rew == 'naive':
-                # param = sample_max_vals(belief, t=self.t, nK=int(self.param[0]))
-                r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)#(param, self.param[1]))
-            elif self.f_rew == 'naive_value':
-                r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            else:
-                r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief)
+            # if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
+            #     r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # elif self.f_rew == 'exp_improve':
+            #     r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # elif self.f_rew == 'naive':
+            #     # param = sample_max_vals(belief, t=self.t, nK=int(self.param[0]))
+            #     r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)#(param, self.param[1]))
+            # elif self.f_rew == 'naive_value':
+            #     r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # else:
+            #     r = self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief)
             
-            cumul_reward += r
+            # cumul_reward += r
+            
             cur_depth += 1
-        return cumul_reward 
+        return cumul_measruement 
 
 
     def get_next_child(self, current_node):
@@ -187,12 +206,21 @@ class Tree(object):
             child_node = self.get_next_child(current_node)
             return self.get_next_leaf_node(child_node)
 
+    def action_sampler(self, node, num_new_action):
+        # Get action values for new actions based on current current node's state
+        # Action values are angles. (Assume that radius is constant)
+        cur_num_action = len(node.action)
+        max_action = node.max_action
+        action_list = np.linspace(0.0, 2*np.pi, num=max_action)
+        return action_list[cur_num_action:cur_num_action+num_new_action]
+
     def tree_policy(self, parent):
         # print(self.path_generator.get_path_set(parent.pose))
         # print(self.path_generator)
         # actions, dense_paths = self.path_generator.get_path_set(parent.pose)
-        cur_node = parent 
-        num_BO = 3 
+        # cur_node = parent 
+        
+        
         while(parent.depth <self.max_depth):
             if(parent.children==None):
                 parent.children = []
@@ -227,6 +255,7 @@ class Tree(object):
                                                 action = free_actions[action], 
                                                 dense_path = free_dense_paths[action],
                                                 zvals = None)
+                        
                         parent.add_children(new_node)
                         # print("Adding next child: ", parent.name + '_action' + str(i))
                         return new_node 
@@ -291,65 +320,18 @@ class Tree(object):
                 counter += self.print_helper(child)
             return counter
 
-class Node_Set(object):
-    '''
-    Class which contains all node set with position coordinates. It is used for fast neighbor search of tree. And revise tree structure
-    '''
-    def __init__(self, leaf_num, neighbor_thres, tree):
-        self.leaf_num = leaf_num
-        self.neighbor_thres = neighbor_thres
-        if tree is not None:
-            self.node_list = self.get_leaf_nodes(tree)
-            self.pos_list = self.convert_to_pos(self.node_list)
-        else:
-            self.node_list = []
-            self.pos_list = []
-
-    def get_leaf_nodes(self,tree):
-        #Get all leaf nodes of tree structure
-        leafs = [] 
-        def __get_leaf_nodes(node):
-            if node is not None:
-                if len(node.children) ==0:
-                    # leafs.append(np.array(node.pose[0], node.pose[1]))
-                    leafs.append(node)
-                for n in node.children:
-                    __get_leaf_nodes(n)
-        __get_leaf_nodes(tree.root)
-        return leafs 
-
-    def add_node(self, node):
- 
-        self.node_vec(node)
-        self.build_kdtree()
-
-    def convert_to_pos(self, node_list):
-        pos_list = []
-        for i, node in enumerate(node_list):
-            pos_list.append(np.array(node.pose[0], node.pose[1]))
-        return pos_list 
-
-    def build_kdtree(self):
-        #Convert node_vec to position value based kdtree
-        if(len(self.node_list) != len(self.pos_list)):
-            self.pos_list = self.convert_to_pos(self.node_list)
-        self.kdtree = KDTree(self.pos_list, leaf_size=self.leaf_num)
-
-    def get_neighbor(self, node):
-        #From built kdtree, find nearest nodes which is under threshold. 
-        try:
-            node_idx = self.node_list.index(node)
-        except expression as identifier:
-            print("Node is not in node set")
-            pass
-        dist, ind = self.kdtree.query(self.pos_list[:node_idx], k=10)
-        neighbor_list = []
-        for i in range(len(dist)):
-            if(dist[i] > self.neighbor_thres):
-                break
-            if(i>0):
-                neighbor_list.append(self.node_list[ind[i]])
-        return neighbor_list
+    def visualize_tree(self):
+        ranges = (0.0, 20.0, 0.0, 20.0)
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ax.set_xlim(ranges[0:2])
+        ax.set_ylim(ranges[2:])
+        # for key, value in self.tree.items():
+        #     cp = value[0][0]
+        #     if(type(cp)==tuple):
+        #         x = cp[0]
+        #         y = cp[1]
+        #         plt.plot(x, y,marker='*')
+        plt.show()
 
 
 class conti_MCTS(MCTS):

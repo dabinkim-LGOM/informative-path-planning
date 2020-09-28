@@ -874,7 +874,7 @@ class cMCTS(MCTS):
         else:
             self.c = 1.0
 
-    def choose_trajectory(self):
+    def get_actions(self):
         #Main function loop which makes the tree and selects the best child
         #Output: path to take, cost of that path
         print("Current Time: ", self.t)

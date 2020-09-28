@@ -3,6 +3,7 @@ import matplotlib
 from matplotlib.colors import LogNorm
 from matplotlib import cm
 from sklearn import mixture
+from sklearn.neighbors import *
 # from IPython.display import display
 from scipy.stats import multivariate_normal
 import numpy as np
@@ -90,12 +91,8 @@ class Tree(object):
 
     def get_best_child(self):
         if len(self.root.children)==1:
-            # print("length 1")
-            # print(self.root.children[0])
             return self.root.children[0], self.root.children[0].reward
         else:
-            # print("length more than 1")
-            # print(self.root.children)
             max_nquery = 0
             max_idx = 0
             for i in range(len(self.root.children)):
@@ -223,7 +220,7 @@ class Tree(object):
                     # print "Action:", parent.name + '_action' + str(i)
                     if len(free_actions[action])!=0:
                         # print free_actions[action]
-                        new_node = Node_C(pose = parent.pose, 
+                        new_node = Node(pose = parent.pose, 
                                                 parent = parent, 
                                                 name = parent.name + '_action' + str(i), 
                                                 action = free_actions[action], 
@@ -253,13 +250,14 @@ class Tree(object):
             # print "Action:", parent.name + '_action' + str(i)
             if len(free_actions[action])!=0:
                 # print free_actions[action]
-                parent.add_children(Node_C(pose = parent.pose, 
+                parent.add_children(Node(pose = parent.pose, 
                                         parent = parent, 
                                         name = parent.name + '_action_initial' + str(i), 
                                         action = free_actions[action], 
                                         dense_path = free_dense_paths[action],
                                         zvals = None))
                 # print("Adding next child: ", parent.name + '_action' + str(i))
+
     def collision_check(self, path_dict, path_dense_dict):
         free_paths = {}
         dense_free_paths = {}
@@ -292,13 +290,73 @@ class Tree(object):
                 counter += self.print_helper(child)
             return counter
 
+class Node_Set(object):
+    '''
+    Class which contains all node set with position coordinates. It is used for fast neighbor search of tree. And revise tree structure
+    '''
+    def __init__(self, leaf_num, neighbor_thres, tree):
+        self.leaf_num = leaf_num
+        self.neighbor_thres = neighbor_thres
+        if tree is not None:
+            self.node_list = self.get_leaf_nodes(tree)
+            self.pos_list = self.convert_to_pos(self.node_list)
+        else:
+            self.node_list = []
+            self.pos_list = []
+
+    def get_leaf_nodes(self,tree):
+        #Get all leaf nodes of tree structure
+        leafs = [] 
+        def __get_leaf_nodes(node):
+            if node is not None:
+                if len(node.children) ==0:
+                    # leafs.append(np.array(node.pose[0], node.pose[1]))
+                    leafs.append(node)
+                for n in node.children:
+                    __get_leaf_nodes(n)
+        __get_leaf_nodes(tree.root)
+        return leafs 
+
+    def add_node(self, node):
+ 
+        self.node_vec(node)
+        self.build_kdtree()
+
+    def convert_to_pos(self, node_list):
+        pos_list = []
+        for i, node in enumerate(node_list):
+            pos_list.append(np.array(node.pose[0], node.pose[1]))
+        return pos_list 
+
+    def build_kdtree(self):
+        #Convert node_vec to position value based kdtree
+        if(len(self.node_list) != len(self.pos_list)):
+            self.pos_list = self.convert_to_pos(self.node_list)
+        self.kdtree = KDTree(self.pos_list, leaf_size=self.leaf_num)
+
+    def get_neighbor(self, node):
+        #From built kdtree, find nearest nodes which is under threshold. 
+        try:
+            node_idx = self.node_list.index(node)
+        except expression as identifier:
+            print("Node is not in node set")
+            pass
+        dist, ind = self.kdtree.query(self.pos_list[:node_idx], k=10)
+        neighbor_list = []
+        for i in range(len(dist)):
+            if(dist[i] > self.neighbor_thres):
+                break
+            if(i>0):
+                neighbor_list.append(self.node_list[ind[i]])
+        return neighbor_list
+
 
 class conti_MCTS(MCTS):
     '''MCTS for continuous action'''
     def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, turning_radius, frontier_size,
                 path_generator, aquisition_function, f_rew, time, gradient_on, grad_step, lidar, SFC):
         # Call the constructor of the super class
-        super(cMCTS, self).__init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+        super(conti_MCTS, self).__init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
                                     path_generator, aquisition_function, f_rew, time, gradient_on, grad_step, lidar, SFC)
         self.tree_type = 'dpw'
         # Tree type is dpw 
@@ -312,7 +370,6 @@ class conti_MCTS(MCTS):
         self.frontier_size = frontier_size
         self.path_generator = path_generator
         self.obstacle_world = obstacle_world
-        # self.default_path_generator = Path_Generator(frontier_size, )
         self.spent = 0
         self.tree = None
         self.c = 0.1 #Parameter for UCT function 
@@ -324,6 +381,10 @@ class conti_MCTS(MCTS):
         self.lidar = lidar
         self.sdf_map = None
         self.SFC = SFC #SFC Bounding box for optimization 
+
+        self.Nodeset = None 
+        self.conti_depth = 2 
+        
 
         # The differnt constatns use logarthmic vs polynomical exploriation
         if self.f_rew == 'mean':
@@ -343,7 +404,7 @@ class conti_MCTS(MCTS):
         else:
             self.c = 1.0
 
-    def choose_trajectory(self):
+    def get_actions(self):
         #Main function loop which makes the tree and selects the best child
         #Output: path to take, cost of that path
         print("Current Time: ", self.t)
@@ -360,15 +421,8 @@ class conti_MCTS(MCTS):
             param = None
 
         # initialize tree
-        if self.tree_type == 'dpw':
-            self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, self.t, max_depth = self.max_depth,
-                            max_rollout_depth= self.max_rollout_depth, turning_radius = self.turning_radius, param = param, c = self.c, gradient_on=self.gradient_on, grad_step=self.grad_step)
-        # elif self.tree_type == 'belief':
-            # self.tree = BeliefTree(self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, t, depth = self.rl, param = param, c = self.c)
-        else:
-            raise ValueError('Tree type must be one of either \'dpw\' or \'belief\'')
-        #self.tree.get_next_leaf()
-        #print self.tree.root.children[0].children
+        self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, self.t, max_depth = self.max_depth,
+                        max_rollout_depth= self.max_rollout_depth, turning_radius = self.turning_radius, param = param, c = self.c, gradient_on=self.gradient_on, grad_step=self.grad_step)
 
         time_start = time.clock()            
         # while we still have time to compute, generate the tree

@@ -27,6 +27,7 @@ import vis_grid_map as vis
 import GridMap_library as sdf
 import Frontier_SFC as ft_sfc 
 import CBTS as cb 
+import cont_MCTS as c_mc
 
 
 class Robot:
@@ -322,9 +323,13 @@ class Nonmyopic_Robot(Robot):
             #             self.fs, self.path_generator, self.aquisition_function, self.f_rew, t, self.gradient_on, self.grad_step, self.lidar, SFC)
             # best_path, best_dense_path, cost = mcts.get_actions()    
 
-            cbts = cb.CBTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.horizon_length,
-                        self.fs, self.path_generator, self.aquisition_function, self.f_rew, t )
-            best_path, best_dense_path, cost = cbts.get_actions()
+            # cbts = cb.CBTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth ,self.max_rollout_depth, self.horizon_length,
+            #             self.fs, self.path_generator, self.aquisition_function, self.f_rew, t )
+            # best_path, best_dense_path, cost = cbts.get_actions()
+
+            c_mcts = c_mc.conti_MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth, self.max_rollout_depth, self.fs, self.path_generator,
+                                    self.aquisition_function, self.f_rew, t, self.grad_step, self.lidar, self.SFC)
+            best_path, best_dense_path, cost = c_mcts.get_actions()
             self.trajectory.append(best_path)
 
             #TODO: Is this necessary?? Figure out whether it is. 

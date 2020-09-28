@@ -26,6 +26,7 @@ from Evaluation import *
 from GPModel import *
 import GridMap_library as sdflib
 from Path_Generator import *
+from MCTS import *
 # from global_BO import ParticleSwarmOpt 
 
 
@@ -383,7 +384,7 @@ class conti_MCTS(MCTS):
         self.SFC = SFC #SFC Bounding box for optimization 
 
         self.Nodeset = None 
-        self.conti_depth = 2 
+        self.depth_conti = 2 
         
 
         # The differnt constatns use logarthmic vs polynomical exploriation

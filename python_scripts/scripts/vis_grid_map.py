@@ -9,34 +9,28 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.colors as mcolors
 import matplotlib.collections as mcoll
-import matplotlib.patches as patches
 
 class visualization():
-    def __init__(self, pos, mapsize, resol, lidar_belief, reward_function, frontier, selected_ft, SFC, is_frontier, save):
+    def __init__(self, mapsize, resol, lidar_belief, reward_function, save):
         '''
         - mapsize : Axis length of the map (m)
         - resol : Resolution of grid 
         - Lidar class(C++ binding) which contains belief map
         '''
-        self.pos = pos 
         self.mapsize = mapsize
         self.resol = resol
         self.lidar = lidar_belief 
         self.save = save #Bool value
         self.reward_function = reward_function
-        self.all_frontier = frontier
-        self.selected_ft = selected_ft 
-        self.is_frontier = is_frontier
-        self.SFC = SFC 
 
     def visualization(self, t):
         data = self.iterator()
         fig = self.show(data)
 
         if self.save:
-            if not os.path.exists('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/'):
-                os.makedirs('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/')
-            fig.savefig('./figures/nonmyopic/'+str(self.reward_function)+'/GridMap/' + str(t) + '.png')
+            if not os.path.exists('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/'):
+                os.makedirs('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/')
+            fig.savefig('../figures/nonmyopic/'+str(self.reward_function)+'/GridMap/' + str(t) + '.png')
 
 
     def iterator(self):
@@ -66,32 +60,12 @@ class visualization():
         # norm = mcolors.BoundaryNorm(bounds, cmap.N)
         im = ax.imshow(data, cmap="gray", vmin=0, vmax=1, origin="lower")
         grid = np.arange(-self.resol/2.0, self.mapsize+1, self.resol)
-
-        plt.scatter(x=self.pos[0], y=self.pos[1], c='y', s=6)
-
-        if(self.is_frontier):
-            self.show_frontier()
-            self.show_SFC(ax)
         xmin, xmax, ymin, ymax = -self.resol/2.0, self.mapsize + self.resol/2.0, -self.resol/2.0, self.mapsize + self.resol/2.0
+
         # plt.show()
         return fig
         
-    def show_frontier(self):
-        for pt in self.all_frontier:
-            # print('x=', pt[0], 'y=', pt[1])
-            plt.scatter(x=pt[0], y=pt[1], c='r', s=3)
-        for pt in self.selected_ft:
-            # print('x=', pt[0], 'y=', pt[1])
-            plt.scatter(x=pt[0], y=pt[1], c='b', s=3)
-        
 
-    def show_SFC(self, ax):
-        for box_vec in self.SFC:
-            # for box in box_vec:
-            box = box_vec[0]
-            rect = patches.Rectangle((box[0],box[1]),box[2]-box[0],box[3]-box[1],linewidth=1, edgecolor='k',facecolor='none')
-            # Add the patch to the Axes
-            ax.add_patch(rect)
 
 
         

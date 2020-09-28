@@ -28,7 +28,6 @@ from GPModel import *
 from MCTS import *
 from Path_Generator import *
 from Robot import *
-from GridMap_library import *
 
 
 class Planning_Result():

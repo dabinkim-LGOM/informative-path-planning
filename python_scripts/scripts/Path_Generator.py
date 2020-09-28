@@ -110,43 +110,6 @@ class Dubins_EqualPath_Generator(Path_Generator):
     The Dubins_EqualPath_Generator class which inherits from Path_Generator. Modifies Dubin Curve paths so that all
     options have an equal number of sampling points
     '''
-    def make_sample_paths_w_goals(self, goals):
-        '''Connect the current_pose to the goal places'''
-        coords = {}
-        true_coords = {}
-        print('goals', goals)
-        for i,goal in enumerate(goals):
-            g = (goal[0],goal[1],self.cp[2])
-            path = dubins.shortest_path(self.cp, goal, self.tr)
-            configurations, _ = path.sample_many(self.ss)
-            true_coords[i], _ = path.sample_many(self.ss/5)
-            coords[i] = [config for config in configurations if config[0] > self.extent[0] and config[0] < self.extent[1] and config[1] > self.extent[2] and config[1] < self.extent[3] ]
-        
-        # find the "shortest" path in sample space
-        current_min = 1000
-        for key,path in coords.items():
-            if len(path) < current_min and len(path) > 1:
-                current_min = len(path)
-        
-        # limit all paths to the shortest path in sample space
-        # NOTE! for edge cases nar borders, this limits the paths significantly
-        for key,path in coords.items():
-            if len(path) > current_min:
-                path = path[0:current_min]
-                coords[key]=path
-
-        for key,path in true_coords.items():
-            ftemp = []
-            for c in path:
-                if(len(coords[key])>0):
-                    if c[0] == coords[key][-1][0] and c[1] == coords[key][-1][1]:
-                        ftemp.append(c)
-                        break
-                    else:
-                        ftemp.append(c)
-            true_coords[key] = ftemp
-        return coords, true_coords
-
     def make_sample_paths(self):
         '''Connect the current_pose to the goal places'''
         coords = {}
@@ -218,11 +181,6 @@ class Dubins_EqualPath_Generator(Path_Generator):
     #         true_path[key] = ftemp
     #     return coords , true_coords
     #     # , true_coords
-
-    def get_path_set_w_goals(self, current_pose, goals):
-        self.cp = current_pose
-        paths, true_paths = self.make_sample_paths_w_goals(goals)
-        return paths, true_paths
 
     def get_path_set(self, current_pose):
         '''Primary interface for getting list of path sample points for evaluation

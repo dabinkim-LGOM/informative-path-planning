@@ -137,7 +137,7 @@ class GPModel:
         if xvals is not None and zvals is not None:
             print "Optimizing kernel parameters given data"
             # Initilaize a GP model (used only for optmizing kernel hyperparamters)
-            self.m = GPy.models.SparseGPRegression(np.array(xvals), np.array(zvals), self.kern)
+            self.m = GPy.models.GPRegression(np.array(xvals), np.array(zvals), self.kern)
             self.m.initialize_parameter()
 
             # Constrain the hyperparameters during optmization

@@ -38,7 +38,7 @@ include_directories(${decomp_ros_utils_INCLUDE_DIRS} ${decomp_ros_utils_INCLUDE_
 # add_executable(test_grid_map  test/test_gt_map.cpp src/ObstacleGridConverter.cpp)
 
 # add_library(frontier src/wavefront_frontier_detection.cpp)
-add_library(grid_map_ipp_library src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp src/SFC.cpp src/JPS.cpp src/util.cpp)
+add_library(grid_map_ipp_library src/grid_map_ipp.cpp src/ObstacleGridConverter.cpp src/SFC.cpp src/JPS.cpp src/util.cpp src/FFD.cpp)
 target_include_directories(grid_map_ipp_library PUBLIC  ${DECOMP_UTIL_INCLUDE_DIRS})
 target_link_libraries(grid_map_ipp_library ${DECOMP_UTIL_LIBRARIES})
 

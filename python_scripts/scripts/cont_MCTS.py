@@ -33,7 +33,7 @@ from Evaluation import *
 from GPModel import *
 import GridMap_library as sdflib
 from Path_Generator import *
-from MCTS import *
+# from MCTS import MCTS 
 # from global_BO import ParticleSwarmOpt 
 
 
@@ -42,20 +42,21 @@ class Node(object):
         #is_cont : is this node is a element of continuous-action node set?
         self.pose = pose
         self.name = name
-        self.zvals = zvals 
         self.reward = 0.0
         self.nqueries = 0
 
         self.parent = parent 
-        self.children = None
-
+        self.children = []
 
         self.max_action = 5 # Default number 
-        self.action = action    
+        
+        if action is None:
+            self.action = []
+        else:
+            self.action = action
+        # self.action = action    
         self.dense_path = dense_path 
         self.is_cont = is_cont # is cont = true: No dpw, false: dpw
-        # if self.is_cont:
-        #     self.max_action = 
 
         if parent is None:
             self.depth = 0
@@ -81,12 +82,13 @@ class Node(object):
 
 
 class Tree(object):
-    def __init__(self, ranges, obstacle_world, f_rew, f_aqu,  belief, pose, time, max_depth, max_rollout_depth, param, horizon_length, path_generator, frontier_size, c, depth_conti):
+    def __init__(self, ranges, obstacle_world, f_rew, f_aqu,  belief, pose, path_generator, time, max_depth, max_rollout_depth, max_action, param, horizon_length, frontier_size, c, depth_conti, grad_step):
         self.ranges = ranges 
         self.path_generator = path_generator
         self.obstacle_world = obstacle_world
         self.max_depth = max_depth #Maximum tree depth?
         self.max_rollout_depth = max_rollout_depth
+        self.max_action = max_action
         # self.max_rollout_depth = max_rollout_depth
         self.param = param
         self.time = time
@@ -98,11 +100,12 @@ class Tree(object):
         self.zvals = None 
         self.initial_pose = pose 
         self.depth_conti = depth_conti
-        self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, zvals = None, is_cont=True)  
+        self.root = Node(pose, parent = None, name = 'root', action = None, dense_path = None, is_cont=True)  
 
         self.num_action = frontier_size # Number of actions 
         self.c = c 
-
+        self.grad_step = grad_step
+        self.update_bound = 0.5
         #self.build_action_children(self.root) 
 
     def get_best_child(self):
@@ -124,17 +127,18 @@ class Tree(object):
         # At leaf node, xobs is given, and reward is computed based on its current belief function 
         # During recusirve call of the function, 'None' type xobs is passed therefore, reward is not redundanlty computed. 
         if xobs is not None: 
-            if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
-                reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            elif self.f_rew == 'exp_improve':
-                reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            elif self.f_rew == 'naive':
-                # param = sample_max_vals(belief, t=self.t, nK=int(self.param[0]))
-                reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)#(param, self.param[1]))
-            elif self.f_rew == 'naive_value':
-                reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
-            else:
-                reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief)
+            reward += self.get_aq_reward(xobs=xobs, belief=self.belief)
+            # if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
+            #     reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # elif self.f_rew == 'exp_improve':
+            #     reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # elif self.f_rew == 'naive':
+            #     # param = sample_max_vals(belief, t=self.t, nK=int(self.param[0]))
+            #     reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)#(param, self.param[1]))
+            # elif self.f_rew == 'naive_value':
+            #     reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief, param = self.param)
+            # else:
+            #     reward += self.acquisition_function(time = self.time, xvals = xobs, robot_model = belief)
 
         if leaf_node.parent is None:
             leaf_node.nqueries += 1
@@ -163,19 +167,33 @@ class Tree(object):
         cur_pose = current_node.pose 
         cumul_reward = 0.0 
         cumul_measruement = np.empty(shape=(0,2))
+        action_seq = []
         while cur_depth <= tmp_depth + self.max_rollout_depth:
-            actions, dense_paths = self.path_generator.get_path_set(cur_pose)
+            #TODO: Modify it to angle action
+            print("cur depth", cur_depth)
             
-            selected_action = random.choice(actions) 
+            goal_list, action_list = self.action_sampler(current_node, self.max_action)
+            
+            selected_idx = random.choice(range(len(action_list)))
+            selected_goal = goal_list[selected_idx]
+            selected_action = action_list[selected_idx]
+            print(selected_goal)
 
-            if(len(selected_action) == 0):
-                return cumul_reward
+            paths, dense_paths = self.path_generator.get_path_set_w_goals(cur_pose, [[selected_goal[0], selected_goal[1], cur_pose[2]]])
+            
+            action_seq.append(selected_action)
+            # if(len(selected_action) == 0):
+            #     return cumul_reward
             # print(selected_action)
-            cur_pose = selected_action[-1]
+            print(paths)
+            cur_pose = paths[0][-1]
             
             obs = np.array(cur_pose)
             xobs = np.vstack([obs[0], obs[1]]).T
-            cumul_measruement = np.vstack(cumul_measruement, xobs)
+            cumul_measruement = np.vstack([cumul_measruement, xobs])
+
+            current_node = Node(pose = cur_pose, parent = current_node, name = 'Rollout' +str(cur_depth), 
+                                action= None, dense_path = None, is_cont=False)
             # zobs = self.belief.predict_value(xobs)
 
             # if self.f_rew == 'mes' or self.f_rew == 'maxs-mes':
@@ -193,7 +211,7 @@ class Tree(object):
             # cumul_reward += r
             
             cur_depth += 1
-        return cumul_measruement 
+        return cumul_measruement, action_seq
 
 
     def get_next_child(self, current_node):
@@ -229,11 +247,32 @@ class Tree(object):
         pose = node.pose 
         max_action = node.max_action
         action_list = np.linspace(-1.0*np.pi, np.pi, num=max_action)
-        goal_list = [] 
-        for action in action_list[cur_num_action:cur_num_action+num_new_action]:
-            goal = np.array([pose[0]+self.horizon_length*math.cos(action), pose[1]+self.horizon_length*math.sin(action)])
-            goal_list.append(goal)
-        return goal_list, action_list 
+        goal_list = []
+        selected_action_list = []
+        num_select = 0  
+        idx = 0
+        while(num_select < num_new_action):
+            if(cur_num_action+idx > len(action_list)-1):
+                print("[WARNING] Number of action exceeds")
+                break
+            action = action_list[cur_num_action+idx]
+            goal = pose[0:1] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
+            if(self.is_bound(goal)):
+                goal_list.append(goal)
+                selected_action_list.append(action)
+                num_select +=1
+            idx +=1
+
+        # for action in action_list[cur_num_action:cur_num_action+num_new_action]:
+        #     goal = np.array([pose[0]+self.horizon_length*math.cos(action), pose[1]+self.horizon_length*math.sin(action)])
+        #     goal_list.append(goal)
+        return goal_list, selected_action_list 
+    
+    def is_bound(self, point):
+        if point[0] < self.ranges[0] or point[0] > self.ranges[1] or point[1] < self.ranges[2] or point[1] > self.ranges[3]:
+            return False
+        else:
+            return True 
 
     def select_action(self, parent):
         # Select next action for simulation 
@@ -244,7 +283,7 @@ class Tree(object):
             return parent, False 
 
         leaf_node = self.get_next_leaf_node(parent)
-
+        leaf_node.print_self()
         if(leaf_node.depth <= self.depth_conti):
             update = True
         else:
@@ -252,21 +291,26 @@ class Tree(object):
         if( len(leaf_node.action) < leaf_node.max_action):
             #New action is added 
             new_goal, new_action = self.action_sampler(leaf_node, 1)
-            actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, goal_vec)
+            print("New goal", new_goal[0])
+            if not self.is_bound(new_goal[0]):
+                return parent, False 
+
+            actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, new_goal)
             #TODO: Add projection with respect to SFC convex
             free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
+            print("Free action", free_actions)
             new_node = Node(pose = parent.pose, 
                             parent = parent, 
-                            name = parent.name + '_action' + str(i), 
-                            action = free_actions[action], 
-                            dense_path = free_dense_paths[action],
+                            name = parent.name + '_action' + str(len(parent.children)+1), 
+                            action = free_actions, 
+                            dense_path = free_dense_paths,
                             is_cont= (leaf_node.depth+1 <=self.depth_conti))
             alpha = 3.0 / (10.0 * (self.max_depth - new_node.depth) - 3.0)
             new_node.set_max_action(self.max_action, alpha)
             leaf_node.add_children(new_node)
             leaf_node.action.append(new_action) 
 
-            return leaf_node.children[len[leaf_node.children]-1], update 
+            return new_node, update 
         else:
             #UCT criteria 
             action_node = self.get_next_child(leaf_node)
@@ -323,15 +367,15 @@ class Tree(object):
         update_action = cur_action + step_size * grad_value 
 
         #Clipping action update into some given bound 
-        if( math.abs(update_action - cur_action) > self.update_bound):
+        if( abs(update_action - cur_action) > self.update_bound):
             update_action = cur_action + (update_action - cur_action)/math.abs(update_action - cur_action) * self.update_bound 
 
-        new_pose = cur_node.pose + self.horizon_length *np.array([math.cos(update_action), math.sin(update_action)])        
+        new_pose = [cur_node.pose[0:1] + self.horizon_length *np.array([math.cos(update_action), math.sin(update_action)]), update_action]
         #Action update 
         cur_node.action[i] = update_action 
         cur_node.children[i].pose = new_pose 
         
-        self.update_subtree(cur_node.action[i])
+        self.update_subtree(cur_node.children[i])
 
     '''
     Value gradients of action by finite difference.  
@@ -343,30 +387,37 @@ class Tree(object):
         cur_action = math.atan2(next_pose[1]-cur_pose[1], next_pose[0] - cur_pose[0])
         
         eps = 0.05
-        perturb_action1 = cur_action + eps 
-        perturb_action2 = cur_action - eps 
+        perturb_action1 = cur_action + eps
+        perturb_action2 = cur_action - eps
 
-        cur_action_list = [cur_action, action_seq]
-        perturb_action_list1 = [perturb_action1, action_seq]
-        perturb_action_list2 = [perturb_action2, action_seq]
+        cur_action_list = action_seq
+        cur_action_list.insert(0, cur_action)
+
+        perturb_action_list1 = action_seq 
+        perturb_action_list1.insert(0, perturb_action1)
+
+        perturb_action_list2 = action_seq 
+        perturb_action_list2.insert(0, perturb_action2)
 
         cur_meas_list = np.empty(shape=(0,2))
         perturb_meas_list1 = np.empty(shape=(0,2))
         perturb_meas_list2 = np.empty(shape=(0,2))
         
-        pose = cur_pose 
+        pose = cur_pose[0:1]
+        print(cur_action_list)
         for action in cur_action_list:
-            pose = pose + np.array([self.horizon_length*math.cos(action), self.horizon_length*math.sin(action_seq)])
+            print(action)
+            pose = pose + self.horizon_length*np.array([math.cos(action), math.sin(action)])
             cur_meas_list = np.vstack([cur_meas_list, pose])
 
-        pose = cur_pose 
+        pose = cur_pose[0:1]
         for action in perturb_action_list1:
-            pose = pose + np.array([self.horizon_length*math.cos(action), self.horizon_length*math.sin(action_seq)])
+            pose = pose + self.horizon_length*np.array([math.cos(action), math.sin(action)])
             perturb_meas_list1 = np.vstack([perturb_meas_list1, pose])
 
-        pose = cur_pose
+        pose = cur_pose[0:1]
         for action in perturb_action_list2:
-            pose = pose + np.array([self.horizon_length*math.cos(action), self.horizon_length*math.sin(action_seq)])
+            pose = pose + self.horizon_length*np.array([math.cos(action), math.sin(action)])
             perturb_meas_list2 = np.vstack([perturb_meas_list2, pose])
         
         cur_reward = self.get_aq_reward(cur_meas_list, self.belief)
@@ -394,13 +445,16 @@ class Tree(object):
 
     #Update subtree of current node to make sure that actions & states are consistent
     def update_subtree(self, node):
-        if(node.depth == self.max_depth or node.children is None):
+        if(node.depth == self.max_depth or len(node.children)==0):
             return
         else:
             cur_pose = node.pose 
-            for idx, action in enumerate(node.action):
-                node.children[idx].pose = cur_pose + self.horizon_length * np.array([math.cos(action), math.sin(action)])
-                self.update_subtree(node.children[idx])
+            node.print_self()
+            if len(node.action) >0:
+                for idx, action in enumerate(node.action):
+                    print('children numb: ', len(node.children), 'action num: ', len(node.action))
+                    node.children[idx].pose = cur_pose + self.horizon_length * np.array([math.cos(action), math.sin(action)])
+                    self.update_subtree(node.children[idx])
 
     def print_tree(self):
         counter = self.print_helper(self.root)
@@ -433,14 +487,15 @@ class Tree(object):
         plt.show()
 
 
-class conti_MCTS(MCTS):
+class conti_MCTS(object):
     '''MCTS for continuous action'''
     def __init__(self, ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
-                path_generator, aquisition_function, f_rew, time, grad_step, lidar, SFC):
+                path_generator, aquisition_function, f_rew, horizon_length, time, grad_step, lidar, SFC):
         # Call the constructor of the super class
-        super(conti_MCTS, self).__init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
-                                    path_generator, aquisition_function, f_rew, time, grad_step, lidar, SFC)
-        self.tree_type = 'dpw'
+        # super(conti_MCTS, self).__init__(ranges, obstacle_world, computation_budget, belief, initial_pose, max_depth, max_rollout_depth, frontier_size,
+        #         path_generator, aquisition_function, f_rew, time, grad_step, lidar, SFC)
+        # self.tree_type = 'dpw'
+        self.ranges = ranges
         # Tree type is dpw 
         # self.aq_param = aq_param
         self.GP = belief
@@ -452,6 +507,7 @@ class conti_MCTS(MCTS):
         self.frontier_size = frontier_size
         self.path_generator = path_generator
         self.obstacle_world = obstacle_world
+        self.horizon_length = horizon_length
         self.spent = 0
         self.tree = None
         self.c = 0.1 #Parameter for UCT function 
@@ -500,9 +556,11 @@ class conti_MCTS(MCTS):
         else:
             param = None
 
+        max_action = 10
         # initialize tree
-        self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, self.t, max_depth = self.max_depth,
-                        max_rollout_depth= self.max_rollout_depth, param = param, c = self.c, grad_step=self.grad_step)
+        self.tree = Tree(self.ranges, self.obstacle_world, self.f_rew, self.aquisition_function, self.GP, self.cp, self.path_generator, self.t, 
+                        max_depth = self.max_depth, max_rollout_depth= self.max_rollout_depth, max_action = max_action, param = param, horizon_length= self.horizon_length, frontier_size=self.frontier_size,
+                        c = self.c, depth_conti=2, grad_step=self.grad_step)
 
         time_start = time.clock()            
         # while we still have time to compute, generate the tree
@@ -510,6 +568,7 @@ class conti_MCTS(MCTS):
         while time.clock() - time_start < self.comp_budget:#i < self.comp_budget:
             i += 1
             next_node, action_update = self.tree.select_action(self.tree.root)
+            print(next_node.action)
             measurements, action_seq = self.tree.rollout(next_node)
             self.tree.backprop(next_node, measurements, 0.0)
 
@@ -517,6 +576,7 @@ class conti_MCTS(MCTS):
             #      Need another criteria for adequate # of updates....
             if action_update:
                 # self.tree.action_update()
+                
                 grad_vec = self.tree.get_value_grad(self.tree.root, next_node, action_seq)
                 self.tree.update_action(self.tree.root, next_node, grad_vec)
             # gp = copy.copy(self.GP)

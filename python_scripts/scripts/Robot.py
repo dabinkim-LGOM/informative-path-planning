@@ -328,7 +328,7 @@ class Nonmyopic_Robot(Robot):
             # best_path, best_dense_path, cost = cbts.get_actions()
 
             c_mcts = c_mc.conti_MCTS(self.ranges, self.obstacle_World, self.comp_budget, self.GP, self.loc, self.max_depth, self.max_rollout_depth, self.fs, self.path_generator,
-                                    self.aquisition_function, self.f_rew, t, self.grad_step, self.lidar, self.SFC)
+                                    self.aquisition_function, self.f_rew, self.horizon_length, t, self.grad_step, self.lidar, SFC)
             best_path, best_dense_path, cost = c_mcts.get_actions()
             self.trajectory.append(best_path)
 

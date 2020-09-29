@@ -115,9 +115,10 @@ class Dubins_EqualPath_Generator(Path_Generator):
         coords = {}
         true_coords = {}
         print('goals', goals)
-        for i,goal in enumerate(goals):
-            g = (goal[0],goal[1],self.cp[2])
-            path = dubins.shortest_path(self.cp, goal, self.tr)
+        for i, goal in enumerate(goals):
+            g = (goal[0], goal[1], self.cp[2])
+            print(goal)
+            path = dubins.shortest_path(self.cp, g, self.tr)
             configurations, _ = path.sample_many(self.ss)
             true_coords[i], _ = path.sample_many(self.ss/5)
             coords[i] = [config for config in configurations if config[0] > self.extent[0] and config[0] < self.extent[1] and config[1] > self.extent[2] and config[1] < self.extent[3] ]

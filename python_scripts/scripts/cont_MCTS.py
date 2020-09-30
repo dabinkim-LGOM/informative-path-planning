@@ -47,7 +47,7 @@ class Node(object):
 
         self.parent = parent 
         self.children = []
-
+        self.fully_explored = False 
         self.max_action = 5 # Default number 
         
         if action is None:
@@ -170,22 +170,21 @@ class Tree(object):
         action_seq = []
         while cur_depth <= tmp_depth + self.max_rollout_depth:
             #TODO: Modify it to angle action
-            print("cur depth", cur_depth)
+            # print("cur depth", cur_depth)
             
-            goal_list, action_list = self.action_sampler(current_node, self.max_action)
-            
+            goal_list, action_list = self.action_sampler(current_node, self.max_action, rollout=True)
+            # print("Num: ", len(action_list))
             selected_idx = random.choice(range(len(action_list)))
             selected_goal = goal_list[selected_idx]
             selected_action = action_list[selected_idx]
-            print(selected_goal)
-
+            # print("Cur Pose: ", cur_pose)
+            # print("selected goal: ", selected_goal, selected_goal[0], selected_goal[1], cur_pose[2])
             paths, dense_paths = self.path_generator.get_path_set_w_goals(cur_pose, [[selected_goal[0], selected_goal[1], cur_pose[2]]])
             
             action_seq.append(selected_action)
             # if(len(selected_action) == 0):
             #     return cumul_reward
             # print(selected_action)
-            print(paths)
             cur_pose = paths[0][-1]
             
             obs = np.array(cur_pose)
@@ -239,7 +238,7 @@ class Tree(object):
             child_node = self.get_next_child(current_node)
             return self.get_next_leaf_node(child_node)
 
-    def action_sampler(self, node, num_new_action):
+    def action_sampler(self, node, num_new_action, rollout=False):
         # Get action values for new actions based on current current node's state
         # Action values are angles. (Assume that radius is constant)
         # Return list of goal positions 
@@ -251,21 +250,33 @@ class Tree(object):
         selected_action_list = []
         num_select = 0  
         idx = 0
-        while(num_select < num_new_action):
-            if(cur_num_action+idx > len(action_list)-1):
-                print("[WARNING] Number of action exceeds")
-                break
-            action = action_list[cur_num_action+idx]
-            goal = pose[0:1] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
-            if(self.is_bound(goal)):
-                goal_list.append(goal)
-                selected_action_list.append(action)
-                num_select +=1
-            idx +=1
+        
+        if rollout:
+            num_new_action = node.max_action
+            # selected_action_list = action_list 
+            for action in action_list:
+                goal = pose[0:1][0] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
+                # print("pose: ", pose[0:1][0], "hl", self.horizon_length, "action: " , np.array([math.cos(action), math.sin(action)]))
+                # print("goal: ", goal)
+                if(self.is_bound(goal)):
+                    goal_list.append(goal)
+                    selected_action_list.append(action)
+        else:
+            while(num_select < num_new_action):
+                if(cur_num_action+idx > len(action_list)-1):
+                    # print("[WARNING] Number of action exceeds")
+                    break
+                action = action_list[cur_num_action+idx]
+                goal = pose[0:1] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
+                if(self.is_bound(goal)):
+                    goal_list.append(goal)
+                    selected_action_list.append(action)
+                    num_select +=1
+                idx +=1
 
-        # for action in action_list[cur_num_action:cur_num_action+num_new_action]:
-        #     goal = np.array([pose[0]+self.horizon_length*math.cos(action), pose[1]+self.horizon_length*math.sin(action)])
-        #     goal_list.append(goal)
+            # for action in action_list[cur_num_action:cur_num_action+num_new_action]:
+            #     goal = np.array([pose[0]+self.horizon_length*math.cos(action), pose[1]+self.horizon_length*math.sin(action)])
+            #     goal_list.append(goal)
         return goal_list, selected_action_list 
     
     def is_bound(self, point):
@@ -288,23 +299,32 @@ class Tree(object):
             update = True
         else:
             update = False 
-        if( len(leaf_node.action) < leaf_node.max_action):
+
+        if( len(leaf_node.action) < leaf_node.max_action and not leaf_node.fully_explored):
             #New action is added 
             new_goal, new_action = self.action_sampler(leaf_node, 1)
-            print("New goal", new_goal[0])
+            if(len(new_goal)==0):
+                leaf_node.fully_explored = True
+                print("Fully Explored")
+                return leaf_node, False
+            # print("New goal", new_goal[0])
+
             if not self.is_bound(new_goal[0]):
                 return parent, False 
 
             actions, dense_paths = self.path_generator.get_path_set_w_goals(parent.pose, new_goal)
             #TODO: Add projection with respect to SFC convex
             free_actions, free_dense_paths = self.collision_check(actions, dense_paths)
-            print("Free action", free_actions)
-            new_node = Node(pose = parent.pose, 
+            # print("Free action", free_actions)
+            new_path = free_actions.get(0)
+            new_dense_path = free_dense_paths.get(0) 
+            new_node = Node(pose = new_path[-1], 
                             parent = parent, 
                             name = parent.name + '_action' + str(len(parent.children)+1), 
-                            action = free_actions, 
+                            action = new_action, 
                             dense_path = free_dense_paths,
                             is_cont= (leaf_node.depth+1 <=self.depth_conti))
+            new_node.print_self()
             alpha = 3.0 / (10.0 * (self.max_depth - new_node.depth) - 3.0)
             new_node.set_max_action(self.max_action, alpha)
             leaf_node.add_children(new_node)
@@ -358,7 +378,8 @@ class Tree(object):
     def update_action(self, cur_node, next_node, grad_value):
         # grad_val = best_sequence[-1][:]
         for i, node in enumerate(cur_node.children):
-            if(node.pose == next_node.pose):
+            # print("node pose: ", node.pose, "next node pose", next_node.pose)
+            if(node.pose[0] == next_node.pose[0] and node.pose[1] == next_node.pose[1]):
                 selected_idx = i 
                 selected_node = cur_node.children[i]
         cur_action = math.atan2(selected_node.pose[1]-cur_node.pose[1], selected_node.pose[0] - cur_node.pose[0])
@@ -369,8 +390,9 @@ class Tree(object):
         #Clipping action update into some given bound 
         if( abs(update_action - cur_action) > self.update_bound):
             update_action = cur_action + (update_action - cur_action)/math.abs(update_action - cur_action) * self.update_bound 
-
-        new_pose = [cur_node.pose[0:1] + self.horizon_length *np.array([math.cos(update_action), math.sin(update_action)]), update_action]
+        
+        new_xy = cur_node.pose[0:1] + self.horizon_length *np.array([math.cos(update_action), math.sin(update_action)])
+        new_pose = np.array([new_xy[0], new_xy[1], update_action])
         #Action update 
         cur_node.action[i] = update_action 
         cur_node.children[i].pose = new_pose 
@@ -404,9 +426,7 @@ class Tree(object):
         perturb_meas_list2 = np.empty(shape=(0,2))
         
         pose = cur_pose[0:1]
-        print(cur_action_list)
         for action in cur_action_list:
-            print(action)
             pose = pose + self.horizon_length*np.array([math.cos(action), math.sin(action)])
             cur_meas_list = np.vstack([cur_meas_list, pose])
 
@@ -449,12 +469,24 @@ class Tree(object):
             return
         else:
             cur_pose = node.pose 
-            node.print_self()
+            # node.print_self()
             if len(node.action) >0:
                 for idx, action in enumerate(node.action):
-                    print('children numb: ', len(node.children), 'action num: ', len(node.action))
+                    # print('children numb: ', len(node.children), 'action num: ', len(node.action))
                     node.children[idx].pose = cur_pose + self.horizon_length * np.array([math.cos(action), math.sin(action)])
                     self.update_subtree(node.children[idx])
+
+    def print_tree_structure(self):
+        self.print_id(self.root) 
+
+    def print_id(self, cur_node):
+        if cur_node.children is None:
+            cur_node.print_self()
+            return
+        else:
+            for child in cur_node.children:
+                child.print_self()
+                self.print_id(child)
 
     def print_tree(self):
         counter = self.print_helper(self.root)
@@ -568,7 +600,6 @@ class conti_MCTS(object):
         while time.clock() - time_start < self.comp_budget:#i < self.comp_budget:
             i += 1
             next_node, action_update = self.tree.select_action(self.tree.root)
-            print(next_node.action)
             measurements, action_seq = self.tree.rollout(next_node)
             self.tree.backprop(next_node, measurements, 0.0)
 
@@ -588,6 +619,7 @@ class conti_MCTS(object):
         print("Rollouts completed in", str(time_end - time_start) +  "s")
         print("Number of rollouts:", i)
         self.tree.print_tree()
+        self.tree.print_tree_structure()
 
         print([(node.nqueries, node.reward/(node.nqueries+0.1)) for node in self.tree.root.children])
 

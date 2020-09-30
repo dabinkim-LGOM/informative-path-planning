@@ -98,7 +98,7 @@ class Planning_Result():
                         sample_step = 2.0,
                         evaluation = self.evaluation, 
                         f_rew = self.reward_function,
-                        computation_budget = 10.0,
+                        computation_budget = 3.0,
                         max_depth = 4,
                         rollout_length = 6, 
                         input_limit=input_limit_, 

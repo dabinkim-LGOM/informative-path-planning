@@ -295,6 +295,7 @@ def info_gain(time, xvals, robot_model):
 def mean_UCB(time, xvals, robot_model):
     ''' Computes the UCB for a set of points along a trajectory '''
     data = np.array(xvals)
+    # print(data)
     if data.shape==(2,):
         x1 = data[0]
         x2 = data[1]

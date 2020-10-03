@@ -453,8 +453,8 @@ class CBTS(object):
         print("Time spent : ", time.clock() - time_start)
 
         best_child, reward = self.tree.get_best_child()
-
-
+        
+        
         # update_ver = self.update_action(self.tree[best_sequence])
         return best_child.action, best_child.dense_path, reward 
 

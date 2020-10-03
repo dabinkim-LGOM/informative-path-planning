@@ -50,7 +50,7 @@ class Robot:
             kernel_dataset = None, prior_dataset = None, init_lengthscale = 10.0, init_variance = 100.0, noise = 0.05, 
             path_generator = 'default', frontier_size = 6, horizon_length = 5, turning_radius = 1, sample_step = 0.5, 
             evaluation = None , f_rew = 'mean', computation_budget = 60, rollout_length = 6, input_limit = [0.0, 10.0, -30.0, 30.0],
-             sample_number= 10, step_time = 5.0, grid_map = None, lidar = None, is_save_fig = False, gradient_on = False, grad_step = 0.05):
+             sample_number= 10, step_time = 5.0, grid_map = None, lidar = None, is_save_fig = False, gradient_on = False, grad_step = 0.0):
         ''' Initialize the robot class with a GP model, initial location, path sets, and prior dataset'''
         self.ranges = ranges
         self.eval = evaluation
@@ -230,9 +230,9 @@ class Nonmyopic_Robot(Robot):
     
     def __init__(self, sample_world, obstacle_world, start_loc = (0.0, 0.0, 0.0), ranges = (-10., 10., -10., 10.), kernel_file = None, 
             kernel_dataset = None, prior_dataset = None, init_lengthscale = 10.0, init_variance = 100.0, noise = 0.05, 
-            path_generator = 'default', frontier_size = 6, horizon_length = 5, turning_radius = 1, sample_step = 0.5, 
+            path_generator = 'default', frontier_size = 6, horizon_length = 5, turning_radius = 1, sample_step = 1.5, 
             evaluation = None , f_rew = 'mean', computation_budget = 60, max_depth = 4, rollout_length = 6, input_limit = [0.0, 10.0, -30.0, 30.0],
-             sample_number= 10, step_time = 5.0, grid_map = None, lidar = None, is_save_fig = False, gradient_on = False, grad_step = 0.05):
+             sample_number= 10, step_time = 5.0, grid_map = None, lidar = None, is_save_fig = False, gradient_on = False, grad_step = 0.0):
         ''' Initialize the robot class with a GP model, initial location, path sets, and prior dataset'''
 
         self.ranges = ranges
@@ -331,7 +331,8 @@ class Nonmyopic_Robot(Robot):
                                     self.aquisition_function, self.f_rew, self.horizon_length, t, self.grad_step, self.lidar, SFC)
             best_path, best_dense_path, cost = c_mcts.get_actions()
             self.trajectory.append(best_path)
-
+            # print("Best Path: ", best_path)
+            # print("Best Dense Path: ", best_dense_path)
             #TODO: Is this necessary?? Figure out whether it is. 
             # sampling_path, best_path, best_val, all_paths, all_values, self.max_locs, self.max_val, self.target = self.choose_trajectory(T=T, t=t)
 
@@ -339,6 +340,7 @@ class Nonmyopic_Robot(Robot):
 
             free_paths = self.collision_check(all_paths)
             
+
             self.eval.update_metrics(t, self.GP, free_paths, best_path) #All free paths are only required for instant regret metric 
 
             '''
@@ -349,7 +351,7 @@ class Nonmyopic_Robot(Robot):
             x1 = data[:,0]
             x2 = data[:,1]
             xlocs = np.vstack([x1, x2]).T
-            print('observation point', xlocs)
+            # print('observation point', xlocs)
             self.collect_observations(xlocs)
 
             self.collect_lidar_observations(xlocs)
@@ -392,7 +394,7 @@ class Nonmyopic_Robot(Robot):
             # visual.visualization(t)
             
             if(self.save_fig == True):
-                self.save_figure(t)
+                self.save_figure(c_mcts, t)
 
 
             '''
@@ -438,9 +440,10 @@ class Nonmyopic_Robot(Robot):
         
         return free_paths 
         
-    def save_figure(self, t):
+    def save_figure(self, c_mcts, t):
         rob_mod = self.GP
         ranges = self.ranges
+
         
         x1vals = np.linspace(self.ranges[0], self.ranges[1], 100)
         x2vals = np.linspace(self.ranges[2], self.ranges[3], 100)
@@ -452,6 +455,22 @@ class Nonmyopic_Robot(Robot):
         ax.set_xlim(ranges[0:2])
         ax.set_ylim(ranges[2:])
         plot = ax.contourf(x1, x2, observations.reshape(x1.shape), cmap = 'viridis', vmin = -25, vmax = 25, levels=np.linspace(-25, 25, 15))
+
+        cur_pos = c_mcts.tree.root.pose 
+        # pos_vec = c_mcts.tree.position_first_depth(c_mcts.tree.root)
+        pos_vec = c_mcts.tree.position_span_tree(c_mcts.tree.root)
+        pos_init_vec = c_mcts.tree.position_init_depth(c_mcts.tree.root)
+        for i, pos in enumerate(pos_vec):
+            x = pos[0]
+            y = pos[1]
+            plt.plot(x,y, marker='*', c='b')
+            # ax.text(x, y+0.5, str(c_mcts.tree.root.children[i].nqueries), fontsize=9)
+        for i,pos in enumerate(pos_init_vec):
+            x = pos[0]
+            y = pos[1]
+            plt.plot(x,y, marker='*', c='m')
+        plt.plot(cur_pos[0], cur_pos[1], marker='x', c='r')
+        
         # self.obstacle_World.draw_obstacles()
         for obs in self.obstacle_World.obstacles:
             x,y = obs.exterior.xy

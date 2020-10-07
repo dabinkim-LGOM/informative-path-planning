@@ -311,7 +311,7 @@ def mean_UCB(time, xvals, robot_model):
     d = 20
     pit = np.pi**2 * (time + 1)**2 / 6.
     beta_t = 2 * np.log(d * pit / delta)
-
+    # print("######################HELLO#####################")
     return np.sum(mu) + np.sqrt(beta_t) * np.sum(np.fabs(var))
 
 def hotspot_info_UCB(time, xvals, robot_model):

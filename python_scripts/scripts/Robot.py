@@ -457,14 +457,14 @@ class Nonmyopic_Robot(Robot):
         plot = ax.contourf(x1, x2, observations.reshape(x1.shape), cmap = 'viridis', vmin = -25, vmax = 25, levels=np.linspace(-25, 25, 15))
 
         cur_pos = c_mcts.tree.root.pose 
-        # pos_vec = c_mcts.tree.position_first_depth(c_mcts.tree.root)
-        pos_vec = c_mcts.tree.position_span_tree(c_mcts.tree.root)
+        pos_vec = c_mcts.tree.position_first_depth(c_mcts.tree.root)
+        # pos_vec = c_mcts.tree.position_span_tree(c_mcts.tree.root)
         pos_init_vec = c_mcts.tree.position_init_depth(c_mcts.tree.root)
         for i, pos in enumerate(pos_vec):
             x = pos[0]
             y = pos[1]
             plt.plot(x,y, marker='*', c='b')
-            # ax.text(x, y+0.5, str(c_mcts.tree.root.children[i].nqueries), fontsize=9)
+            ax.text(x, y+0.5, str(c_mcts.tree.root.children[i].nqueries), fontsize=9)
         for i,pos in enumerate(pos_init_vec):
             x = pos[0]
             y = pos[1]

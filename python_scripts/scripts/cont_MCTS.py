@@ -210,11 +210,26 @@ class Tree(object):
             # print("Path", paths)
             if(len(paths)==0 or len(paths[0])==0):
                 break
+
             cur_pose = paths[0][-1]
+            # data = np.array(paths.get(0))
+            # xlocs = np.empty(shape=(0,2))
+            # for row in range(data.shape[0]):
+            #     pt = np.array([data[row,0], data[row,1]])
+            #     if(self.is_bound(pt)):
+            #         xlocs = np.vstack([xlocs, pt])
+            # print(xlocs)
             
-            obs = np.array(cur_pose)
-            xobs = np.vstack([obs[0], obs[1]]).T
-            cumul_measruement = np.vstack([cumul_measruement, xobs])
+            # print(data)
+            # x1 = data[:,0]
+            # x2 = data[:,1]
+            # xlocs = np.vstack([x1, x2]).T
+
+            #IF rollout node is in map range, add to measurement 
+            if(self.is_bound(cur_pose)):
+                obs = np.array(cur_pose)
+                xlocs = np.vstack([obs[0], obs[1]]).T
+            cumul_measruement = np.vstack([cumul_measruement, xlocs])
 
             current_node = Node(pose = cur_pose, parent = current_node, name = 'Rollout' +str(cur_depth), 
                                 action= None, dense_path = None, is_cont=False)            
@@ -231,8 +246,8 @@ class Tree(object):
             #print "Considering child:", child.name, "with queries:", child.nqueries
             if child.nqueries == 0:
                 return child
-            vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
-            # vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
+            # vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt((float(current_node.nqueries) ** e_d)/float(child.nqueries)) 
+            vals[child] = child.reward/float(child.nqueries) + self.c * np.sqrt(np.log(float(current_node.nqueries))/float(child.nqueries)) 
         # Return the max node, or a random node if the value is equal
         # print("Number of  children: ", len(current_node.children))
         # print("Keys: ", vals.keys())
@@ -244,21 +259,20 @@ class Tree(object):
     #Find leaf node based on UCT criteria
     #Leaf node: If maximum depth is reacehd or # of child nodes are smaller than maximum number of actions
     def get_next_leaf_node(self, current_node):
-
-        if(current_node.depth == self.max_depth or 
-           (len(current_node.children) <= current_node.max_action and not current_node.fully_explored)):
-            return current_node
+        # flag = -1
+        if( len(current_node.children) < current_node.max_action and (not current_node.fully_explored) ):
+            return current_node, 0
         elif(current_node.max_action ==0):
             current_node.fully_explored = True 
             print("#### Maximum Action is Zero. Current node is selected ####")
-            return current_node 
+            return current_node, 1
         else:
             if(current_node.depth == self.max_depth):
-                return current_node
+                return current_node, 2
             else:
                 child_node = self.get_next_child(current_node)
                 if(child_node ==-1):
-                    return current_node 
+                    return current_node, 3 
             return self.get_next_leaf_node(child_node)
 
     def action_sampler(self, node, num_new_action, rollout=False):
@@ -323,7 +337,21 @@ class Tree(object):
         if(parent.depth == self.max_depth):
             return parent, False 
 
-        leaf_node = self.get_next_leaf_node(parent)
+        leaf_node, flag = self.get_next_leaf_node(parent)
+        # print(leaf_node)
+        # print(flag)
+        if(leaf_node.name == 'root'):
+            print("[SELECTION] is ROOT NODE")
+            if flag==0:
+                print("[SELECTION] MAX CHILDREN IS NOT REACHED")
+            elif flag==1:
+                print("[SELECTION] MAX ACTION IS ZERO")
+            elif flag==2:
+                print("[SELECTION] MAX DEPTH IS REACHED")
+            elif flag==3:
+                print("[SELECTION] CHILD NODE IS -1")
+            else:
+                print("[SELECTION] NO OPTION")
         # print("[SELECT NODE]: Leaf node is selected")
         # leaf_node.print_self()
 
@@ -345,9 +373,17 @@ class Tree(object):
                 dpw = False
         
         if(len(leaf_node.action) >= leaf_node.max_action):
-            print "[LENGTH EXCEEDS]",
-            leaf_node.print_self()
-            print("CUR_LEN: ", len(leaf_node.action), " MAXIMUM ACTION: ", leaf_node.max_action)
+            # print "[LENGTH EXCEEDS]",
+            # leaf_node.print_self()
+            # print("CUR_ACTION_LEN: ", len(leaf_node.action), " MAXIMUM ACTION: ", leaf_node.max_action)
+            # print("CUR_CHILD_LEN: ", len(leaf_node.children))
+            # if(leaf_node.fully_explored):
+            #     print("FULLY EXPLORED!")
+            # else:
+            #     print("NOT FULLY EXPLORED!")
+            # # print("CHILD_ACT_LEN: ", max( len(child.action) for child in leaf_node.children) )
+            # print("NODE DEPTH: ", leaf_node.depth, " MAX DEPTH: ", self.max_depth)
+            # # len(leaf_node.children[0].action))
             self.action_check1_1 +=1 
 
         elif(leaf_node.fully_explored):
@@ -718,9 +754,10 @@ class conti_MCTS(object):
         # The differnt constatns use logarthmic vs polynomical exploriation
         if self.f_rew == 'mean':
             # if self.tree_type == 'belief':
-            #     self.c = 1000
+            self.c = 0.1
+            # self.c = 1000
             # elif self.tree_type == 'dpw':
-            self.c = 5000
+            # self.c = 5000
         elif self.f_rew == 'exp_improve':
             self.c = 200
         elif self.f_rew == 'mes':
@@ -804,8 +841,8 @@ class conti_MCTS(object):
         #Executing the first action 
         
         # best_child = self.tree.root.children[np.argmax([node.nqueries for node in self.tree.root.children])]
-        # best_child = self.tree.root.children[np.argmax([node.reward/node.nqueries for node in self.tree.root.children])]
-        best_child = random.choice([node for node in self.tree.root.children if node.nqueries == max([n.nqueries for n in self.tree.root.children])])
+        best_child = self.tree.root.children[np.argmax([node.reward/node.nqueries for node in self.tree.root.children])]
+        # best_child = random.choice([node for node in self.tree.root.children if node.nqueries == max([n.nqueries for n in self.tree.root.children])])
         all_vals = {}
         for i, child in enumerate(self.tree.root.children):
             all_vals[i] = child.reward / (float(child.nqueries)+0.1)

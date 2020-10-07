@@ -360,7 +360,7 @@ class Nonmyopic_Robot(Robot):
             Frontier & SFC building 
             '''
             time_prev = time.clock()
-            # frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
+            frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
 
             # # print("Frontier test")
             # # print("Data", np.array([data[-1,0],data[-1,1]]))
@@ -390,8 +390,9 @@ class Nonmyopic_Robot(Robot):
             '''
             Visualization 
             '''
-            # visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, self.f_rew, frontier_set, selected_ft, SFC, True, True)
-            # visual.visualization(t)
+            # visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, True, self.f_rew, frontier_set, selected_ft, SFC, True)
+            visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, True, self.f_rew)
+            visual.visualization(t)
             
             if(self.save_fig == True):
                 self.save_figure(c_mcts, t)

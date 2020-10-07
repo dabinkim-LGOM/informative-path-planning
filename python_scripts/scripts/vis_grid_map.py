@@ -12,7 +12,7 @@ import matplotlib.collections as mcoll
 import matplotlib.patches as patches
 
 class visualization():
-    def __init__(self, pos, mapsize, resol, lidar_belief, reward_function, frontier, selected_ft, SFC, is_frontier, save):
+    def __init__(self, pos, mapsize, resol, lidar_belief, save=False, reward_function=None, frontier=None, selected_ft=None, SFC=None, is_frontier=False):
         '''
         - mapsize : Axis length of the map (m)
         - resol : Resolution of grid 

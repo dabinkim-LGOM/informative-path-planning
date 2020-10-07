@@ -155,6 +155,7 @@ class Tree(object):
             return 
         else: 
             self.check3+=1
+            # print("XOBS: ", xobs)
             reward += self.get_aq_reward(xobs=xobs, belief=self.belief)
 
         if leaf_node.parent is None:
@@ -184,15 +185,15 @@ class Tree(object):
         This gives samples rather than rewards
         '''
         cur_depth = current_node.depth
-        tmp_depth = cur_depth 
+        tmp_depth = 0 
         cur_pose = current_node.pose 
         cumul_reward = 0.0 
         cumul_measruement = np.empty(shape=(0,2))
         action_seq = []
-        while cur_depth <= tmp_depth + self.max_rollout_depth:
+        while tmp_depth <= self.max_rollout_depth:
             #TODO: Modify it to angle action
             # print("cur depth", cur_depth)
-            goal_list, action_list = self.action_sampler(current_node, self.max_action, rollout=True)
+            goal_list, action_list = self.action_sampler(current_node, self.max_action, rollout=True, col_check=False)
             # print("Rollout Goal Num: ", len(action_list))
             if(len(action_list) ==0):
                 break
@@ -201,17 +202,18 @@ class Tree(object):
             selected_action = action_list[selected_idx]
             # print("Cur Pose: ", cur_pose)
             # print("selected goal: ", selected_goal, selected_goal[0], selected_goal[1], cur_pose[2])
-            paths, dense_paths = self.path_generator.get_path_set_w_goals(cur_pose, [[selected_goal[0], selected_goal[1], cur_pose[2]]])
+            # paths, dense_paths = self.path_generator.get_path_set_w_goals(cur_pose, [[selected_goal[0], selected_goal[1], cur_pose[2]]])
             
+
             action_seq.append(selected_action)
             # if(len(selected_action) == 0):
             #     return cumul_reward
             # print(selected_action)
             # print("Path", paths)
-            if(len(paths)==0 or len(paths[0])==0):
-                break
+            # if(len(paths)==0 or len(paths[0])==0):
+            #     break
 
-            cur_pose = paths[0][-1]
+            cur_pose = [selected_goal[0], selected_goal[1], cur_pose[2]]
             # data = np.array(paths.get(0))
             # xlocs = np.empty(shape=(0,2))
             # for row in range(data.shape[0]):
@@ -229,11 +231,13 @@ class Tree(object):
             if(self.is_bound(cur_pose)):
                 obs = np.array(cur_pose)
                 xlocs = np.vstack([obs[0], obs[1]]).T
-            cumul_measruement = np.vstack([cumul_measruement, xlocs])
+                # print(len(xlocs))
+                cumul_measruement = np.vstack([cumul_measruement, xlocs])
 
             current_node = Node(pose = cur_pose, parent = current_node, name = 'Rollout' +str(cur_depth), 
                                 action= None, dense_path = None, is_cont=False)            
-            cur_depth += 1
+            tmp_depth += 1
+        
         return cumul_measruement, action_seq
 
 
@@ -275,7 +279,9 @@ class Tree(object):
                     return current_node, 3 
             return self.get_next_leaf_node(child_node)
 
-    def action_sampler(self, node, num_new_action, rollout=False):
+
+
+    def action_sampler(self, node, num_new_action, rollout=False, col_check=True):
         # Get action values for new actions based on current current node's state
         # Action values are angles. (Assume that radius is constant)
         # Return list of goal positions 
@@ -293,13 +299,18 @@ class Tree(object):
             # selected_action_list = action_list 
             for action in action_list:
                 goal = np.empty(shape=2)
-                # goal[0] = pose[0][0] + self.horizon_length*math.cos(action)
-                # goal[1] = pose[1][0] + self.horizon_length*math.sin(action) 
-                goal = pose[0:1][0] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
+                # print(pose[0], pose[1])
+                goal[0] = pose[0] + self.horizon_length*math.cos(action)
+                goal[1] = pose[1] + self.horizon_length*math.sin(action) 
+                # goal = pose[0:1][0] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
                 
                 # print("pose: ", pose[0:1][0], "hl", self.horizon_length, "action: " , np.array([math.cos(action), math.sin(action)]))
                 # print("goal: ", goal)
-                if(self.is_bound(goal)):
+                if(col_check):
+                    if(self.is_bound(goal)):
+                        goal_list.append(goal)
+                        selected_action_list.append(action)
+                else:
                     goal_list.append(goal)
                     selected_action_list.append(action)
         else:
@@ -312,7 +323,12 @@ class Tree(object):
                 goal[0] = pose[0] + self.horizon_length*math.cos(action)
                 goal[1] = pose[1] + self.horizon_length*math.sin(action)
                 # goal = pose[0:1] + self.horizon_length*np.array([math.cos(action), math.sin(action)])
-                if(self.is_bound(goal)):
+                if(col_check):
+                    if(self.is_bound(goal)):
+                        goal_list.append(goal)
+                        selected_action_list.append(action)
+                        num_select +=1
+                else:
                     goal_list.append(goal)
                     selected_action_list.append(action)
                     num_select +=1
@@ -340,18 +356,18 @@ class Tree(object):
         leaf_node, flag = self.get_next_leaf_node(parent)
         # print(leaf_node)
         # print(flag)
-        if(leaf_node.name == 'root'):
-            print("[SELECTION] is ROOT NODE")
-            if flag==0:
-                print("[SELECTION] MAX CHILDREN IS NOT REACHED")
-            elif flag==1:
-                print("[SELECTION] MAX ACTION IS ZERO")
-            elif flag==2:
-                print("[SELECTION] MAX DEPTH IS REACHED")
-            elif flag==3:
-                print("[SELECTION] CHILD NODE IS -1")
-            else:
-                print("[SELECTION] NO OPTION")
+        # if(leaf_node.name == 'root'):
+        #     print("[SELECTION] is ROOT NODE")
+        #     if flag==0:
+        #         print("[SELECTION] MAX CHILDREN IS NOT REACHED")
+        #     elif flag==1:
+        #         print("[SELECTION] MAX ACTION IS ZERO")
+        #     elif flag==2:
+        #         print("[SELECTION] MAX DEPTH IS REACHED")
+        #     elif flag==3:
+        #         print("[SELECTION] CHILD NODE IS -1")
+        #     else:
+        #         print("[SELECTION] NO OPTION")
         # print("[SELECT NODE]: Leaf node is selected")
         # leaf_node.print_self()
 
@@ -398,7 +414,7 @@ class Tree(object):
             # print(len(new_goal))
             if(len(new_goal)==0):
                 leaf_node.fully_explored = True
-                print("Fully Explored")
+                # print("Fully Explored")
                 return leaf_node, False
             # print("New goal", new_goal[0])
 
@@ -754,7 +770,7 @@ class conti_MCTS(object):
         # The differnt constatns use logarthmic vs polynomical exploriation
         if self.f_rew == 'mean':
             # if self.tree_type == 'belief':
-            self.c = 0.1
+            self.c = 5000
             # self.c = 1000
             # elif self.tree_type == 'dpw':
             # self.c = 5000
@@ -833,8 +849,8 @@ class conti_MCTS(object):
 
         print([(node.nqueries, node.reward/(node.nqueries+0.1)) for node in self.tree.root.children])
 
-        # print("Analyze Backpropagation")
-        # print("Check 1: ", self.tree.check1, " Check 2: ", self.tree.check2, " Check 3: ", self.tree.check3)
+        print("Analyze Backpropagation")
+        print("Check 1: ", self.tree.check1, " Check 2: ", self.tree.check2, " Check 3: ", self.tree.check3)
         print("Analyze Select Action")
         print("Make Children: ", self.tree.action_check1, " Select UCT children: ", self.tree.action_check2)
         print("Lenght Exceeds Max: ", self.tree.action_check1_1, " Fully Explored: ", self.tree.action_check1_2, " DPW: ", self.tree.action_check1_3)

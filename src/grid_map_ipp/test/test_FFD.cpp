@@ -87,6 +87,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh("");
     ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
     ros::Rate rate(5.0);
+    ros::Publisher pub_belief = nh.advertise<nav_msgs::OccupancyGrid>("belief_map", 100, true);
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 100, true);
     ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
 
@@ -117,7 +118,7 @@ int main(int argc, char** argv)
     grid_map::ObstacleGridConverter converter(100.0, 100.0, 5, obstacles);
     grid_map::GridMap gt_map = converter.GridMapConverter();
     nav_msgs::OccupancyGrid occ_grid = converter.OccupancyGridConverter(gt_map);
-
+    nav_msgs::OccupancyGrid belief_grid; 
     
 
     // for(int i=0; i< 50; i++){
@@ -156,6 +157,9 @@ int main(int argc, char** argv)
     while(nh.ok())
     {
         ros::Time time = ros::Time::now();
+        grid_map::GridMap belief = lidar.get_belief_map();
+        // belief_grid = converter.GridMapConverter(belief, "base", 0.0, 1.0, )
+        GridMapRosConverter::toOccupancyGrid(belief, "base", 0.0, 1.0, belief_grid);
         // grid_map_msgs::GridMap message;
         nav_msgs::OccupancyGrid occ_message;
         nav_msgs::OccupancyGrid &occ_m = occ_message;
@@ -201,6 +205,7 @@ int main(int argc, char** argv)
         marker_vec=marker;
         
         pub_occ.publish(occ_grid);
+        pub_belief.publish(belief_grid);
         // for(int i=0;i<marker_vec.size(); i++){
         pub_vis_ft.publish(marker_vec);
         // }

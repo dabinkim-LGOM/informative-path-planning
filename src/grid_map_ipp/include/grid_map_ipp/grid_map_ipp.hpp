@@ -78,7 +78,8 @@ namespace RayTracer{
             double ft_cluster_r_ = 7.0;
             vector<Eigen::Vector2d> selected_fts_; //euc reference frame
             vector<Eigen::Vector2d> clustered_fts_; //euc reference frame
-            
+            grid_map::Ft_Detector ft_; //FFD 
+
             
             std::unordered_set<int> obstacles_; //Occupied points are saved in set, in order to find it during SFC generation 
             Eigen::Vector2d submap_length_; //Submap length for local path optimization 

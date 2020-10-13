@@ -190,8 +190,8 @@ namespace RayTracer{
     }
 
     std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
-        grid_map::Ft_Detector ft;
         grid_map::Index cur_idx;
+        // grid_map::Position pos_grid = grid_map::euc_to_gridref()
         //Convert conventional xy to grid_map xy coordinate
         grid_map::Size size; 
         size = belief_map_.getSize();
@@ -199,13 +199,13 @@ namespace RayTracer{
         
         grid_map::Position pos_grid = grid_map::euc_to_gridref(pos_euc, map_size_);
         
-        belief_map_.getIndex(pos_grid, cur_idx);
+        // belief_map_.getIndex(pos_grid, cur_idx);
         
         //Update Frontier if there is new scan data 
         if(cur_scan_.size()>0){
-            ft.update_frontier(cur_idx,cur_scan_, belief_map_);
+            ft_.update_frontier(pos_grid, cur_scan_, belief_map_);
             std::cout << "After Update" << std::endl; 
-            vector<vector<grid_map::Index> > frontier_vector = ft.get_frontier();
+            vector<vector<grid_map::Index> > frontier_vector = ft_.get_frontier();
             std::cout << "After Get Frontier" << std::endl; 
             //Convert index from grid_map to conventional xy cooridnate
             vector<Eigen::Vector2d> frontier_position; 

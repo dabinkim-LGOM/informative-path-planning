@@ -16,19 +16,19 @@ using namespace std;
 
 namespace grid_map{
 
-    struct MyPoint{
+    struct Point{
     int x;
     int y;
     };
 
     struct Line{
-    std::vector<MyPoint> points;
+    std::vector<Point> points;
     };
 
 
     class Ft_Detector{
         protected:
-        typedef std::vector<MyPoint> Frontier;
+        typedef std::vector<Point> Frontier;
 
         private:
         std::vector<Frontier> frontiersDB;
@@ -36,16 +36,16 @@ namespace grid_map{
 
         public:
         Ft_Detector(){}
-        std::vector<std::vector<grid_map::Index> > FFD( grid_map::Index pose_idx, std::vector<grid_map::Index> lr, const grid_map::GridMap& map);
-        std::vector<MyPoint> Sort_Polar( std::vector<MyPoint> lr, MyPoint pose);
-        Line Get_Line( MyPoint prev, MyPoint curr );
+        std::vector<std::vector<grid_map::Index> > FFD( grid_map::Position pose, std::vector<grid_map::Index> lr, const grid_map::GridMap& map);
+        std::vector<Point> Sort_Polar( std::vector<Point> lr, Point pose);
+        Line Get_Line( Point prev, Point curr );
 
         bool is_in_map(grid_map::Size map_size, grid_map::Index cur_index);
         void get_neighbours(grid_map::Index n_array[], grid_map::Index position);
         bool is_frontier_point(const grid_map::GridMap& map, grid_map::Index point);
         
-        void update_frontier(grid_map::Index pose_idx, std::vector<grid_map::Index> lr, const grid_map::GridMap& map){
-            frontiers = FFD(pose_idx, lr, map);
+        void update_frontier(grid_map::Position pose, std::vector<grid_map::Index> lr, const grid_map::GridMap& map){
+            frontiers = FFD(pose, lr, map);
         }
 
         //Transform type of frontier set 

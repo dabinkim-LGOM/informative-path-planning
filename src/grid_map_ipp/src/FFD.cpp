@@ -123,7 +123,7 @@ namespace grid_map{
         return (x1 - x0)*(y2 - y0) - (x2 - x0)*(y1 - y0);
     }
 
-    vector<MyPoint> Ft_Detector::Sort_Polar( vector<MyPoint> lr, MyPoint pose ){
+    vector<Point> Ft_Detector::Sort_Polar( vector<Point> lr, Point pose ){
         //simple bubblesort
         bool swapped = 0;
         do
@@ -133,7 +133,7 @@ namespace grid_map{
             {
                 if( CrossProduct(pose.x,pose.y,lr[i-1].x,lr[i-1].y,lr[i].x,lr[i].y) > 0 )  //sorting clockwise
                 {
-                    MyPoint swap = lr[i-1];
+                    Point swap = lr[i-1];
                     lr[i-1] = lr[i];
                     lr[i] = swap;
                     swapped = 1;
@@ -147,7 +147,7 @@ namespace grid_map{
 
 
     //Bresenham's line algorithm
-    Line Ft_Detector::Get_Line( MyPoint prev, MyPoint curr ){
+    Line Ft_Detector::Get_Line( Point prev, Point curr ){
         Line output;
 
         int x0=prev.x, y0=prev.y, x1=curr.x, y1=curr.y;
@@ -157,7 +157,7 @@ namespace grid_map{
 
         float D = 2*dy - dx;
 
-        MyPoint newPoint;
+        Point newPoint;
         newPoint.x = x0;
         newPoint.y = y0;
         output.points.push_back(newPoint);
@@ -169,7 +169,7 @@ namespace grid_map{
             if (D > 0)
             {
                 y = y+1;
-                MyPoint newPoint;
+                Point newPoint;
                 newPoint.x = x;
                 newPoint.y = y;
                 output.points.push_back(newPoint);
@@ -177,39 +177,44 @@ namespace grid_map{
             }
             else
             {
-                MyPoint newPoint;
+                Point newPoint;
                 newPoint.x = x;
                 newPoint.y = y;
                 output.points.push_back(newPoint);
                 D = D + (2*dy);
             }
         }
-
-
         return output;
     }
 
 
-
-    vector<vector<grid_map::Index> > Ft_Detector::FFD( grid_map::Index pose_idx, vector<grid_map::Index> lr_idx, const grid_map::GridMap& map){
+    /**
+     * @brief Fast Frontier Detector main code. 
+     * 
+     * @param pose_idx : Current robot pose 
+     * @param lr_idx : laser readings (Index of gridmap)
+     * @param map : GridMap 
+     * @return vector<vector<grid_map::Index> > 
+     */
+    vector<vector<grid_map::Index> > Ft_Detector::FFD( grid_map::Position pose, vector<grid_map::Index> lr_idx, const grid_map::GridMap& map){
 
         // polar sort readings according to robot position
-        MyPoint pose_mp; pose_mp.x = pose_idx[0]; pose_mp.y = pose_idx[1];
+        Point pose_mp; pose_mp.x = pose[0]; pose_mp.y = pose[1];
 
-        vector<MyPoint> lr;
+        vector<Point> lr;
         for(int i=0; i<lr_idx.size(); i++){
-            MyPoint cur_pt; cur_pt.x = lr_idx[i][0]; cur_pt.y = lr_idx[i][1];
+            Point cur_pt; cur_pt.x = lr_idx[i][0]; cur_pt.y = lr_idx[i][1];
             lr.push_back(cur_pt);
             std::cout << "x: " << cur_pt.x << "y: " << cur_pt.y << std::endl;
         }
         std::cout << "Size of laser scan: " << lr.size() << std::endl; 
 
         std::cout << "CHECKPT 0" << std::endl;
-        vector<MyPoint> sorted = Sort_Polar(lr,pose_mp);
+        vector<Point> sorted = Sort_Polar(lr,pose_mp);
         // get the contour from laser readings
-        MyPoint prev = sorted.back();
+        Point prev = sorted.back();
         sorted.pop_back();
-        vector<MyPoint> contour;
+        vector<Point> contour;
 
         std::cout << "CHECKPT 1" << std::endl;
         for(unsigned int i=0; i<sorted.size(); i++)
@@ -236,7 +241,7 @@ namespace grid_map{
         int type1 = 0; int type2 = 0; int type3 = 0; int type4 = 0;
         for(unsigned int i=0; i<contour.size(); i++)
         {
-            MyPoint curr = contour[i];
+            Point curr = contour[i];
             grid_map::Index curr_idx(curr.x, curr.y);
             if( !is_frontier_point(map, curr_idx) )
             {   type1++; 
@@ -279,7 +284,7 @@ namespace grid_map{
         {
             for(int y=y_min; y<=y_max; y++)
             {
-                MyPoint p;
+                Point p;
                 p.x = x;
                 p.y = y;
                 grid_map::Index p_idx(x, y);
@@ -369,7 +374,7 @@ namespace grid_map{
         //convert frontierDB to frontiers
         for(unsigned int i=0; i<frontiersDB.size(); i++){
             vector<grid_map::Index> NewFrontiers;
-            vector<MyPoint> ThisFrontier = frontiersDB[i];
+            vector<Point> ThisFrontier = frontiersDB[i];
             for(unsigned int j=0; j<ThisFrontier.size(); j++){
                 grid_map::Index cur_idx(ThisFrontier[j].x, ThisFrontier[j].y);
                 NewFrontiers.push_back(cur_idx );
@@ -401,15 +406,15 @@ namespace grid_map{
 
 
 
-    // vector<vector<int> > Ft_Detector::FFD( MyPoint pose,vector<MyPoint> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width){
+    // vector<vector<int> > Ft_Detector::FFD( Point pose,vector<Point> lr, const nav_msgs::OccupancyGrid& map, int map_height, int map_width){
     //     int map_size = map_height * map_width;
 
     //     // polar sort readings according to robot position
-    //     vector<MyPoint> sorted = Sort_Polar(lr,pose);
+    //     vector<Point> sorted = Sort_Polar(lr,pose);
     //     // get the contour from laser readings
-    //     MyPoint prev = sorted.back();
+    //     Point prev = sorted.back();
     //     sorted.pop_back();
-    //     vector<MyPoint> contour;
+    //     vector<Point> contour;
 
     //     for(unsigned int i=0; i<sorted.size(); i++)
     //     {
@@ -433,7 +438,7 @@ namespace grid_map{
     //     }
     //     for(unsigned int i=0; i<contour.size(); i++)
     //     {
-    //         MyPoint curr = contour[i];
+    //         Point curr = contour[i];
     //         if( !is_frontier_point2(map, (curr.x + curr.y * map_width)  ,map_size,map_width) )
     //         {
     //             prev = curr;
@@ -473,7 +478,7 @@ namespace grid_map{
     //     {
     //         for(int y=y_min; y<=y_max; y++)
     //         {
-    //             MyPoint p;
+    //             Point p;
     //             p.x = x;
     //             p.y = y;
     //             if( is_frontier_point2(map, (p.x + p.y * map_width)  ,map_size,map_width) )
@@ -560,7 +565,7 @@ namespace grid_map{
     //     //convert frontierDB to frontiers
     //     for(unsigned int i=0; i<frontiersDB.size(); i++){
     //     vector<int> NewFrontiers;
-    //     vector<MyPoint> ThisFrontier = frontiersDB[i];
+    //     vector<Point> ThisFrontier = frontiersDB[i];
     //     for(unsigned int j=0; j<ThisFrontier.size(); j++){
     //     NewFrontiers.push_back(   ThisFrontier[j].x + (ThisFrontier[j].y * map.info.width) );
     //     }

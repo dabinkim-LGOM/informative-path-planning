@@ -32,14 +32,19 @@ namespace RayTracer{
         return map;
     }
 
-    //Main Loop for Lidar Sensor measurement
-    void Lidar_sensor::get_measurement(Pose& cur_pos)
+    //
+    /**
+     * @brief Main Loop for Lidar Sensor measurement, Get ray sensor & update map
+     * 
+     * @param cur_pos_euc
+     */
+    void Lidar_sensor::get_measurement(Pose& cur_pos_euc)
     {   /**
         cur_pos : Eucliden reference frame
         start_pos, end_pos : GridMap frame
         **/
         grid_map::Size map_size = belief_map_.getSize();
-        grid_map::Position pre_transform_pos(cur_pos.x, cur_pos.y);
+        grid_map::Position pre_transform_pos(cur_pos_euc.x, cur_pos_euc.y);
         grid_map::Position start_pos = grid_map::euc_to_gridref(pre_transform_pos, map_size);
         // cout << start_pos(0) << " " << start_pos(1) << endl;
         grid_map::Index startIndex;
@@ -55,9 +60,9 @@ namespace RayTracer{
         int ray_num = floor( (hangle_max_ - hangle_min_)/angle_resol_ );
         for(int i=0; i< ray_num; i++)
         {   
-            double angle = cur_pos.yaw + angle_resol_ * i;
-            double end_pos_x = cur_pos.x + range_max_ * cos(angle);
-            double end_pos_y = cur_pos.y + range_max_ * sin(angle);
+            double angle = cur_pos_euc.yaw + angle_resol_ * i;
+            double end_pos_x = cur_pos_euc.x + range_max_ * cos(angle);
+            double end_pos_y = cur_pos_euc.y + range_max_ * sin(angle);
 
             //Make sure each ray stays in environment range. 
             if(end_pos_x <0.0){
@@ -190,7 +195,7 @@ namespace RayTracer{
     }
 
     std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
-        grid_map::Index cur_idx;
+        cur_frontier_set_.clear(); 
         // grid_map::Position pos_grid = grid_map::euc_to_gridref()
         //Convert conventional xy to grid_map xy coordinate
         grid_map::Size size; 
@@ -221,6 +226,8 @@ namespace RayTracer{
             }
             cur_frontier_set_ = frontier_position; 
             // return frontier_position;
+
+            cur_scan_.clear(); // Current scan is used. 
         }
         else{
             std::cout << "##########There is no new scan#############" << std::endl; 

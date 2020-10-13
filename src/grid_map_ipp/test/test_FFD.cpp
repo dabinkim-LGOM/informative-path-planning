@@ -81,10 +81,16 @@ visualization_msgs::Marker generate_marker(geometry_msgs::Point pt, double goal_
  }
 
 int main(int argc, char** argv)
-{
+{   
+    //ROS 
     ros::init(argc, argv, "test_frontier");
     ros::NodeHandle nh("");
+    ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
+    ros::Rate rate(5.0);
+    ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 100, true);
+    ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
 
+    //Map Generation 
     int num_box = 5;
     double dim_x = 5.0; double dim_y = 5.0;
     std::list<std::pair<double,double> > center;
@@ -110,86 +116,41 @@ int main(int argc, char** argv)
     //ObstacleGridConverter : Conventional x, y coordinate 
     grid_map::ObstacleGridConverter converter(100.0, 100.0, 5, obstacles);
     grid_map::GridMap gt_map = converter.GridMapConverter();
+    nav_msgs::OccupancyGrid occ_grid = converter.OccupancyGridConverter(gt_map);
 
     
-    for(int i=0; i< 50; i++){
-        for(int j=0; j<50; j++){
-            grid_map::Index idx(i,j);
-            gt_map.at("base", idx) = 0.5;
-        }
-    }
 
-    nav_msgs::OccupancyGrid occ_grid = converter.OccupancyGridConverter(gt_map);
-    grid_map::Ft_Detector ft;
+    // for(int i=0; i< 50; i++){
+    //     for(int j=0; j<50; j++){
+    //         grid_map::Index idx(i,j);
+    //         gt_map.at("base", idx) = 0.5;
+    //     }
+    // }
 
-    double range_max = 30.0; double range_min = 0.5; 
+    //Sensor generation 
+    double range_max = 10.0; double range_min = 0.5; 
     double hangle_max = 180; double hangle_min = -180; double angle_resol = 1.0;
     double resol = 1.0;
 
     RayTracer::Raytracer raytracer(100.0, 100.0, 5, obstacles);
-
     RayTracer::Lidar_sensor lidar(range_max, range_min, hangle_max, hangle_min, angle_resol, 100.0, 100.0, resol, raytracer);
 
     int x_idx; int y_idx;
     nh.param("x_idx", x_idx, 50);
     nh.param("y_idx", y_idx, 50);
-
     grid_map::Index idx(51,50);
-    // vector<vector<grid_map::Index> > frontier_vec = ft.FFD(gt_map, idx);
-    grid_map::Position cur_pos; 
-    gt_map.getPosition(idx, cur_pos);
-    cur_pos(0,0) = cur_pos(0,0) + 50.0; 
-    cur_pos(1,0) = cur_pos(1,0) + 50.0; 
-    RayTracer::Pose cur_pose(cur_pos[0], cur_pos[1], 0.0);
-
-    // cur_pose.x = cur_pos[0]; cur_pose.y = cur_pos[1]; cur_pose.yaw = 0.0; 
-    cout << "Hello" << endl; 
-    lidar.set_belief_map(gt_map);
-    lidar.get_measurement(cur_pose);
-    std::vector<Eigen::Vector2d > frontier_pos = lidar.FFD(cur_pos);
-    // std::pair<std::vector<Eigen::Vector2d >, int> clustered_frontiers 
-    cout << "After " << endl; 
-    // grid_map::Print_vec(frontier_pos);
-    // std::vector<Eigen::Vector2d> clustered_frontiers = lidar.frontier_clustering(frontier_pos);
 
 
     std::random_device rd;
-
     std::mt19937 gen(rd());
-
     std::uniform_int_distribution<int> dis(0, 20);
 
-    visualization_msgs::Marker marker_vec;
-    // cout << "Size of vector" << frontier_vec.size() << " " << endl;
-    int num = 0;
-    // cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
-    
-    vector<geometry_msgs::Point> pt_vec; 
-    std::cout << "Size of frontier pos " << frontier_pos.size() << std::endl; 
-    for(int i=0; i< frontier_pos.size(); i++){
-        double r = dis(gen)/20.0; 
-        // for(int j=0; j<frontier_pos.at(i).size(); j++){
-            num++;
-            Eigen::Vector2d pos = frontier_pos.at(i);
-            // grid_map::Index idx = frontier_vec.at(i).at(j);
-            // grid_map::Position pos;
-            // gt_map.getPosition(idx, pos);
-            geometry_msgs::Point pt; 
-            pt.x = pos(0,0); pt.y = pos(1,0); pt.z = 0.0;
-            // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
-            pt_vec.push_back(pt);
-        // }
-    }
-    visualization_msgs::Marker marker = generate_marker(pt_vec, 0.0, 0.0, num);
-    marker_vec=marker;
-
-    ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
-    ros::Rate rate(30.0);
-    ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 100, true);
-    ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
+    grid_map::Position cur_pos; 
+    gt_map.getPosition(idx, cur_pos);
     grid_map::Size size = gt_map.getSize();
-    cout<< size(0,0) << endl;
-
+    cur_pos = grid_map::grid_to_eucref(cur_pos, size);
+    // cur_pos(0,0) = cur_pos(0,0) + 50.0; 
+    // cur_pos(1,0) = cur_pos(1,0) + 50.0; 
 
     ROS_INFO("ROS LOOP STARTED");
     while(nh.ok())
@@ -202,10 +163,50 @@ int main(int argc, char** argv)
         // GridMapRosConverter::toMessage(gt_map, message);
         GridMapRosConverter::toOccupancyGrid(gt_map, "base", 0.0, 1.0, occ_m);
         // pub.publish(message);
+
+        
+        RayTracer::Pose position(cur_pos[0], cur_pos[1], 0.0);
+        
+        
+        // cur_pose.x = cur_pos[0]; cur_pose.y = cur_pos[1]; cur_pose.yaw = 0.0; 
+        // lidar.set_belief_map(gt_map);
+        lidar.get_measurement(position);
+        std::vector<Eigen::Vector2d > frontier_pos = lidar.FFD(cur_pos);
+
+
+
+        visualization_msgs::Marker marker_vec;
+        // cout << "Size of vector" << frontier_vec.size() << " " << endl;
+        int num = 0;
+        // cout << "Size of cluster" << clustered_frontiers.size() << " " << endl; 
+        
+        vector<geometry_msgs::Point> pt_vec; 
+        std::cout << "Size of frontier pos " << frontier_pos.size() << std::endl; 
+        for(int i=0; i< frontier_pos.size(); i++){
+            double r = dis(gen)/20.0; 
+            // for(int j=0; j<frontier_pos.at(i).size(); j++){
+                num++;
+                Eigen::Vector2d pos = frontier_pos.at(i);
+                // grid_map::Index idx = frontier_vec.at(i).at(j);
+                // grid_map::Position pos;
+                // gt_map.getPosition(idx, pos);
+                geometry_msgs::Point pt; 
+                pt.x = pos(0,0); pt.y = pos(1,0); pt.z = 0.0;
+                // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
+                pt_vec.push_back(pt);
+            // }
+        }
+
+        visualization_msgs::Marker marker = generate_marker(pt_vec, 0.0, 0.0, num);
+        marker_vec=marker;
+        
         pub_occ.publish(occ_grid);
         // for(int i=0;i<marker_vec.size(); i++){
         pub_vis_ft.publish(marker_vec);
         // }
+        cur_pos[0] = cur_pos[0] + 0.1;
+        cur_pos[1] = cur_pos[1] + 0.1;
+
         rate.sleep();    
     }
 

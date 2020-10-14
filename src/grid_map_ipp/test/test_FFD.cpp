@@ -16,6 +16,7 @@
 #include <ros/ros.h>
 #include <typeinfo>
 #include <random>
+#include <chrono>
 
 
 using namespace std; 
@@ -86,7 +87,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "test_frontier");
     ros::NodeHandle nh("");
     ros::Publisher pub = nh.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
-    ros::Rate rate(5.0);
+    ros::Rate rate(2.0);
     ros::Publisher pub_belief = nh.advertise<nav_msgs::OccupancyGrid>("belief_map", 100, true);
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 100, true);
     ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
@@ -175,7 +176,12 @@ int main(int argc, char** argv)
         // cur_pose.x = cur_pos[0]; cur_pose.y = cur_pos[1]; cur_pose.yaw = 0.0; 
         // lidar.set_belief_map(gt_map);
         lidar.get_measurement(position);
+
+        std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
         std::vector<Eigen::Vector2d > frontier_pos = lidar.FFD(cur_pos);
+        std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::milliseconds currentSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        cout << "[FFD] spent " << currentSeconds.count() << "ms" << endl;
 
 
 

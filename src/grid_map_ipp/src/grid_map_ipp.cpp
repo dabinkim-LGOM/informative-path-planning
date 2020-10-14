@@ -13,7 +13,8 @@ namespace RayTracer{
         vector<string> name;
         name.clear();
         name.push_back("base");
-        // name.push_back("JPS");
+        name.push_back("JPS");
+        name.push_back("FFD");
         vector<string> x = name;
         grid_map::GridMap map(x);
 
@@ -23,6 +24,7 @@ namespace RayTracer{
         map.setGeometry(len, resol_, zero);
         map.add("base", 0.5); //Initialize map of prob. value with 0.5 (unknown)
         map.add("JPS", 0);
+        map.add("FFD", 0);
         // belief_map_ = map;
         // cout << map.getLayers().at(0) << endl;
         // cout << belief_map_.getLayers().at(0) << endl;
@@ -89,15 +91,22 @@ namespace RayTracer{
                 auto index = idx.first.back();
                 int int_idx = map_size_x_*index(0,0) + index(1,0);
                 obstacles_.insert(int_idx); //Insert Obstacle Index into unordered_map 
+                
+                cur_scan_.emplace_back( idx.first.back()); // Inser cur_scan_ the end index 
             }
             else{
                 lidar_free_vec.insert(lidar_free_vec.end(), idx.first.begin(), idx.first.end()); //Concatenate two vectors
+                cur_scan_.emplace_back( idx.first.back()); // Inser cur_scan_ the end index 
             }
             // cout <<"After raycasting " << (*(--idx.first.end()))(0) <<" " << (*(--idx.first.end()))(1) <<endl;
             // cout << idx.second << endl;
         }     
         update_map(lidar_free_vec, lidar_collision_vec);
-        cur_scan_ = lidar_collision_vec;
+
+        /**
+        cur_scan_ is used for Fast Frontier Detector. It is set of cartesian coordinates, which are locations of range hits { (x0,y0), (x1,y1), ..., (xn,yn) }
+        **/
+        // cur_scan_ = lidar_collision_vec;
     }
 
 
@@ -195,6 +204,7 @@ namespace RayTracer{
     }
 
     std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
+        std::cout << "[FFD] Currnet position   x: " << pos_euc[0] << " y: " << pos_euc[1] << std::endl; 
         cur_frontier_set_.clear(); 
         // grid_map::Position pos_grid = grid_map::euc_to_gridref()
         //Convert conventional xy to grid_map xy coordinate
@@ -208,21 +218,21 @@ namespace RayTracer{
         
         //Update Frontier if there is new scan data 
         if(cur_scan_.size()>0){
+            // std::cout << "Size of scan: " << cur_scan_.size() << std::endl; 
             ft_.update_frontier(pos_grid, cur_scan_, belief_map_);
-            std::cout << "After Update" << std::endl; 
-            vector<vector<grid_map::Index> > frontier_vector = ft_.get_frontier();
-            std::cout << "After Get Frontier" << std::endl; 
+            vector<grid_map::Index> frontier_vector = ft_.get_frontier();
+            // std::cout << "After Get Frontier" << std::endl; 
             //Convert index from grid_map to conventional xy cooridnate
             vector<Eigen::Vector2d> frontier_position; 
             for(int i=0; i<frontier_vector.size(); ++i){
-                for(int j=0; j<frontier_vector.at(i).size(); ++j){
                     grid_map::Position trans_pos; 
-                    belief_map_.getPosition(frontier_vector.at(i).at(j), trans_pos);
-                    Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, map_size_); 
+                    belief_map_.getPosition(frontier_vector[i], trans_pos);
+                    
+                    // Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, size); 
                     // conv_pos(0) = x_size /2.0 - trans_pos(1);
                     // conv_pos(1) = y_size/2.0 + trans_pos(0);
-                    frontier_position.push_back(conv_pos);
-                }
+                    // std::cout << "EUC POSITION  x: " << conv_pos[0] << " y: " << conv_pos[1] << std::endl; 
+                    frontier_position.push_back(trans_pos);
             }
             cur_frontier_set_ = frontier_position; 
             // return frontier_position;

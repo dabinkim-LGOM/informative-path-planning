@@ -6,5 +6,5 @@
         <param name="y_idx" value="50"/> 
     </node>
 
-    <node name="rviz" pkg="rviz" type ="rviz" output="screen"/>
+    <node name="rviz" pkg="rviz" type ="rviz" args="-d $(find grid_map_ipp)/rviz/default.rviz"  output="screen"/>
 </launch>

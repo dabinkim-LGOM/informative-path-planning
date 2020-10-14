@@ -72,7 +72,7 @@ namespace RayTracer{
             Raytracer raytracer_;
             string layer_;
 
-            vector<grid_map::Index> cur_scan_; //Current laser scan 
+            vector<grid_map::Index> cur_scan_; //Current laser scan. Type: Index 
             vector<Eigen::Vector2d> cur_frontier_set_;
 
             double ft_cluster_r_ = 7.0;

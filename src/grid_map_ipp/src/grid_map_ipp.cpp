@@ -203,6 +203,29 @@ namespace RayTracer{
         return return_pair;
     }
 
+    std::vector<grid_map::Position> Lidar_sensor::get_contour(){
+        std::vector<grid_map::Index> contour; 
+        std::vector<grid_map::Position> pos_contour; 
+        contour = ft_.get_contour();
+        for(int i=0; i< contour.size(); i++){
+            grid_map::Position pos; 
+            belief_map_.getPosition(contour[i], pos);
+            pos_contour.emplace_back(pos);
+        }
+        return pos_contour;
+    }
+    std::vector<grid_map::Position> Lidar_sensor::get_sorted(){
+        std::vector<grid_map::Index> sorted; 
+        std::vector<grid_map::Position> pos_sorted; 
+        sorted = ft_.get_sorted();
+        for(int i=0; i< sorted.size(); i++){
+            grid_map::Position pos; 
+            belief_map_.getPosition(sorted[i], pos);
+            pos_sorted.emplace_back(pos);
+        }
+        return pos_sorted;
+    }
+
     std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
         std::cout << "[FFD] Currnet position   x: " << pos_euc[0] << " y: " << pos_euc[1] << std::endl; 
         cur_frontier_set_.clear(); 
@@ -220,29 +243,30 @@ namespace RayTracer{
         if(cur_scan_.size()>0){
             // std::cout << "Size of scan: " << cur_scan_.size() << std::endl; 
             ft_.update_frontier(pos_grid, cur_scan_, belief_map_);
-            vector<grid_map::Index> frontier_vector = ft_.get_frontier();
-            // std::cout << "After Get Frontier" << std::endl; 
-            //Convert index from grid_map to conventional xy cooridnate
-            vector<Eigen::Vector2d> frontier_position; 
-            for(int i=0; i<frontier_vector.size(); ++i){
-                    grid_map::Position trans_pos; 
-                    belief_map_.getPosition(frontier_vector[i], trans_pos);
-                    
-                    // Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, size); 
-                    // conv_pos(0) = x_size /2.0 - trans_pos(1);
-                    // conv_pos(1) = y_size/2.0 + trans_pos(0);
-                    // std::cout << "EUC POSITION  x: " << conv_pos[0] << " y: " << conv_pos[1] << std::endl; 
-                    frontier_position.push_back(trans_pos);
-            }
-            cur_frontier_set_ = frontier_position; 
-            // return frontier_position;
-
-            cur_scan_.clear(); // Current scan is used. 
         }
         else{
             std::cout << "##########There is no new scan#############" << std::endl; 
         }
+        vector<grid_map::Index> frontier_vector = ft_.get_frontier();
+        std::cout << "[IPP] Size of Frontier vector: " << frontier_vector.size() << std::endl; 
+        // std::cout << "After Get Frontier" << std::endl; 
+        //Convert index from grid_map to conventional xy cooridnate
+        vector<Eigen::Vector2d> frontier_position; 
+        for(int i=0; i<frontier_vector.size(); ++i){
+                grid_map::Position trans_pos; 
+                belief_map_.getPosition(frontier_vector[i], trans_pos);
+                
+                // Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, size); 
+                // conv_pos(0) = x_size /2.0 - trans_pos(1);
+                // conv_pos(1) = y_size/2.0 + trans_pos(0);
+                // std::cout << "EUC POSITION  x: " << conv_pos[0] << " y: " << conv_pos[1] << std::endl; 
+                frontier_position.push_back(trans_pos);
+        }
+        cur_frontier_set_ = frontier_position; 
+        // return frontier_position;
 
+        cur_scan_.clear(); // Current scan is used. 
+    
         return cur_frontier_set_;
     }
 

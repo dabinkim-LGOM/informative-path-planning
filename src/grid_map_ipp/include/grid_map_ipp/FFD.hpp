@@ -33,6 +33,9 @@ namespace grid_map{
         private:
         std::vector<Frontier> frontiersDB;
         std::vector<grid_map::Index> frontiers;
+        std::vector<grid_map::Index> contour;
+        std::vector<grid_map::Index> sorted;
+        
 
         // int num_merge = 0; 
 
@@ -54,7 +57,12 @@ namespace grid_map{
         vector<grid_map::Index> get_frontier(){
             return frontiers;
         }
-
+        vector<grid_map::Index> get_contour(){
+            return contour;
+        }
+        vector<grid_map::Index> get_sorted(){
+            return sorted;
+        }
     };
 }
 

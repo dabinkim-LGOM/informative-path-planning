@@ -78,6 +78,7 @@ namespace RayTracer{
             double ft_cluster_r_ = 7.0;
             vector<Eigen::Vector2d> selected_fts_; //euc reference frame
             vector<Eigen::Vector2d> clustered_fts_; //euc reference frame
+            
             grid_map::Ft_Detector ft_; //FFD 
 
             
@@ -135,6 +136,8 @@ namespace RayTracer{
                 belief_map_ = gridmap;
             }
             
+            std::vector<grid_map::Position> get_contour();
+            std::vector<grid_map::Position> get_sorted();
 
             //Frontier Detector, Return frontier voxels as position(euclidean coordinate); 
             vector<Eigen::Vector2d > FFD(grid_map::Position pos_euc);

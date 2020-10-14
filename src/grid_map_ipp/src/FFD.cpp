@@ -61,7 +61,7 @@ namespace grid_map{
     bool Ft_Detector::is_frontier_point(const grid_map::GridMap& map, grid_map::Index point){
         // ROS_INFO("In Frontier Point");
         // The point under consideration must be known
-        if( abs(map.at("base", point) - 0.5) < 0.3) {
+        if( abs(map.at("base", point) - 0.5) < 0.2) {
             return false;
         }
         if(map.at("base", point) > OCC_THRESHOLD)
@@ -80,7 +80,7 @@ namespace grid_map{
                     return false;
                 }
                 //At least one of the neighbours is unknown, hence frontier point
-                if( abs(map.at("base",locations[i]) - 0.5) < 0.3) {
+                if( abs(map.at("base",locations[i]) - 0.5) < 0.2) {
                     found++;
                     //
                     if(found == MIN_FOUND) 
@@ -184,29 +184,23 @@ namespace grid_map{
      * @return vector<vector<grid_map::Index> > 
      */
     vector<grid_map::Index> Ft_Detector::FFD( grid_map::Position pose, vector<grid_map::Index> lr_idx, const grid_map::GridMap& map){
-
+        contour.clear();
+        sorted.clear();
+        // for(int i=0; i< lr_idx.size(); i++){
+        //     std::cout << "[RAY] x: " << lr_idx[i][0] << " y: " << lr_idx[i][1] << std::endl; 
+        // }
         // polar sort readings according to robot position
-        // Point pose_mp; pose_mp.x = pose[0]; pose_mp.y = pose[1];
         grid_map::Index pose_idx; map.getIndex(pose, pose_idx);
 
-        //Transform from Index lr_idx to Point lr 
-        // vector<Point> lr;
-        // for(int i=0; i<lr_idx.size(); i++){
-        //     grid_map::Position lr_pos; 
-        //     map.getPosition(lr_idx[i], lr_pos);
-
-        //     Point cur_pt; cur_pt.x = lr_pos[0]; cur_pt.y = lr_pos[1];
-        //     lr.push_back(cur_pt);
-        //     std::cout << "x: " << cur_pt.x << "y: " << cur_pt.y << std::endl;
-        // }
         // std::cout << "Size of laser scan: " << lr_idx.size() << std::endl; 
 
-        // std::cout << "CHECKPT 0" << std::endl;
-        vector<grid_map::Index> sorted = Sort_Polar(lr_idx, pose_idx);
+        // vector<grid_map::Index> sorted = Sort_Polar(lr_idx, pose_idx);
+        sorted = Sort_Polar(lr_idx, pose_idx);
+        
         // get the contour from laser readings
         grid_map::Index prev_idx = sorted.back();
         sorted.pop_back();
-        vector<grid_map::Index> contour;
+        // vector<grid_map::Index> contour;
 
         // std::cout << "CHECKPT 1" << std::endl;
         for(unsigned int i=0; i<sorted.size(); i++)
@@ -217,6 +211,7 @@ namespace grid_map{
                 contour.push_back(line.points[j]);
             }
         }
+        std::cout << "[FFD] Contour length: " << contour.size() << std::endl; 
 
         // std::cout << "CHECKPT 2" << std::endl;
         // extract new frontiers from contour
@@ -228,8 +223,7 @@ namespace grid_map{
         // grid_map::Position prev_pos(prev.x, prev.y);
         // map.getIndex(prev_pos, prev_idx);
 
-        if ( is_frontier_point(map, prev_idx) )
-        {
+        if ( is_frontier_point(map, prev_idx) ){
             Frontier newFrontier;
             newFrontier.emplace_back(prev_idx);
             NewFrontiers.push_back(newFrontier);
@@ -237,17 +231,15 @@ namespace grid_map{
         int type1 = 0; int type2 = 0; int type3 = 0; int type4 = 0; int num_merge = 0; 
 
         grid_map::Size mapsize = map.getSize();
-        int Visited[ mapsize[0]][mapsize[1]];
-        for(unsigned int i=0; i<frontiersDB.size(); i++)
-        {
-            for(unsigned int j=0; j<frontiersDB[i].size(); j++)
-            {
+
+        int Visited[mapsize[0]][mapsize[1]];
+        for(unsigned int i=0; i<frontiersDB.size(); i++){
+            for(unsigned int j=0; j<frontiersDB[i].size(); j++){
                 Visited[frontiersDB[i][j][0]][frontiersDB[i][j][1]] = 1;
             }
         }
 
-        for(unsigned int i=0; i<contour.size(); i++)
-        {
+        for(unsigned int i=0; i<contour.size(); i++){
             grid_map::Index curr_idx = contour[i];
 
             //Type1: Point is not a frontier 
@@ -257,27 +249,28 @@ namespace grid_map{
             }
             //Type2: Point is already known (OCCUPIED of FREE)
             // else if ( !(map.data[(curr.x + curr.y * map_width)] != -1) )    //curr is already visited
-            else if (Visited[curr_idx[0]][curr_idx[1]]!=0 )
-            {   type2++; 
+            else if (Visited[curr_idx[0]][curr_idx[1]] ==1 ){
+                type2++; 
                 prev_idx = curr_idx;
             }
             else if ( is_frontier_point(map, curr_idx)
-                        &&  is_frontier_point(map, prev_idx) && NewFrontiers.size()>0 )
-            {   type3++;
+                        &&  is_frontier_point(map, prev_idx) && NewFrontiers.size()>0 ){   
+                type3++;
                 NewFrontiers[NewFrontiers.size()-1].push_back(curr_idx);
-                prev_idx = curr_idx;
                 Visited[curr_idx[0]][curr_idx[1]] = 1;
+                prev_idx = curr_idx;
                 // map.at("FFD", curr_idx) = 1.0;
             }
-            else
-            {   type4++;
+            else{
+                type4++;
                 Frontier newFrontier;
                 newFrontier.push_back(curr_idx);
                 NewFrontiers.push_back(newFrontier);
-                prev_idx = curr_idx;
                 Visited[curr_idx[0]][curr_idx[1]] = 1;
+                prev_idx = curr_idx;
             }
         }
+
         std::cout << "Type1: " << type1 << " Type2: " << type2 << " Type3: " << type3 << " Type4: " << type4 << std::endl; 
         std::cout << "# of Contour: " << contour.size()<<  std::endl;
         std::cout << "# of New Frontiers: " << NewFrontiers.size() << std::endl; 
@@ -294,7 +287,7 @@ namespace grid_map{
             y_min = min(y_min,lr_idx[i][1]);
         }
 
-        std::cout << "WORD x_min: " << x_min << " x_max: " << x_max << " y_min: " << y_min << " y_max: " << y_max << std::endl; 
+        // std::cout << "WORD x_min: " << x_min << " x_max: " << x_max << " y_min: " << y_min << " y_max: " << y_max << std::endl; 
         for(int x=x_min; x<=x_max; x++)
         {
             for(int y=y_min; y<=y_max; y++)
@@ -329,6 +322,7 @@ namespace grid_map{
 
                     if(Enables_f == -1 || Enables_p == -1)
                         continue;
+
                     if(!is_frontier_point(map, frontiersDB[Enables_f][Enables_p])){
                         frontiersDB.erase(frontiersDB.begin()+Enables_f);
                         continue;

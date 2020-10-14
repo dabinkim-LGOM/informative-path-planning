@@ -52,34 +52,36 @@ visualization_msgs::Marker generate_marker(vector<geometry_msgs::Point> pt_vec, 
     return Marker_lane;
  }
 
-visualization_msgs::Marker generate_marker(geometry_msgs::Point pt, double goal_x, double goal_y, int iter, double r, double g, double b)
+visualization_msgs::Marker generate_marker(vector<geometry_msgs::Point> pt_vec, double r, double g, double b, int iter)
   {
-      visualization_msgs::Marker Marker_lane;
-      Marker_lane.id = iter;
-      Marker_lane.type = visualization_msgs::Marker::SPHERE_LIST;
-      Marker_lane.action = visualization_msgs::Marker::ADD;
-      Marker_lane.pose.orientation.w = 1.0;
-      Marker_lane.pose.orientation.x = 0.0;
-      Marker_lane.pose.orientation.y = 0.0;
-      Marker_lane.pose.orientation.z = 0.0;
-  
-      Marker_lane.header.frame_id = "map";
-      Marker_lane.color.a = 1.0;
-      Marker_lane.color.r = r;
-      Marker_lane.color.g = g;
-      Marker_lane.color.b = b;
-      Marker_lane.scale.x = 0.5;
-      Marker_lane.scale.y = 0.5;
-      Marker_lane.scale.z = 0.5;
-  
-      pt.x = pt.x - goal_x;
-      pt.y = pt.y - goal_y;
-      // Marker_lane.header.stamp = ros::Time();
-      Marker_lane.pose.position.x = pt.x;
-      Marker_lane.pose.position.y = pt.y;
-      Marker_lane.pose.position.z = pt.z;
-      return Marker_lane;
+    visualization_msgs::Marker Marker_lane;
+    Marker_lane.id = iter;
+    Marker_lane.type = visualization_msgs::Marker::SPHERE_LIST;
+    Marker_lane.action = visualization_msgs::Marker::ADD;
+    Marker_lane.pose.orientation.w = 1.0;
+    Marker_lane.pose.orientation.x = 0.0;
+    Marker_lane.pose.orientation.y = 0.0;
+    Marker_lane.pose.orientation.z = 0.0;
+
+    Marker_lane.header.frame_id = "map";
+    Marker_lane.color.a = 1.0;
+    Marker_lane.color.r = r;
+    Marker_lane.color.g = g;
+    Marker_lane.color.b = b;
+    Marker_lane.scale.x = 0.5;
+    Marker_lane.scale.y = 0.5;
+    Marker_lane.scale.z = 0.5;
+
+    for(int i=0; i<pt_vec.size(); i++){
+        geometry_msgs::Point point;
+        point.x = pt_vec[i].x;
+        point.y = pt_vec[i].y;
+        Marker_lane.points.push_back(point);
+    }
+
+    return Marker_lane;
  }
+
 
 int main(int argc, char** argv)
 {   
@@ -91,6 +93,8 @@ int main(int argc, char** argv)
     ros::Publisher pub_belief = nh.advertise<nav_msgs::OccupancyGrid>("belief_map", 100, true);
     ros::Publisher pub_occ = nh.advertise<nav_msgs::OccupancyGrid>("occu_grid", 100, true);
     ros::Publisher pub_vis_ft = nh.advertise<visualization_msgs::Marker>("frontier", 100, true);
+    ros::Publisher pub_vis_contour = nh.advertise<visualization_msgs::Marker>("contour", 100, true);
+    ros::Publisher pub_vis_sorted = nh.advertise<visualization_msgs::Marker>("sorted", 100, true);
 
     //Map Generation 
     int num_box = 5;
@@ -183,7 +187,8 @@ int main(int argc, char** argv)
         std::chrono::milliseconds currentSeconds = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         cout << "[FFD] spent " << currentSeconds.count() << "ms" << endl;
 
-
+        std::vector<Eigen::Vector2d> contour_pos = lidar.get_contour();
+        std::vector<Eigen::Vector2d> sorted_pos = lidar.get_sorted();
 
         visualization_msgs::Marker marker_vec;
         // cout << "Size of vector" << frontier_vec.size() << " " << endl;
@@ -208,12 +213,52 @@ int main(int argc, char** argv)
         }
 
         visualization_msgs::Marker marker = generate_marker(pt_vec, 0.0, 0.0, num);
+
+
+        vector<geometry_msgs::Point> contour_vec; 
+        // std::cout << "Size of frontier pos " << frontier_pos.size() << std::endl; 
+        for(int i=0; i< contour_pos.size(); i++){
+            double r = dis(gen)/20.0; 
+            // for(int j=0; j<frontier_pos.at(i).size(); j++){
+                num++;
+                Eigen::Vector2d pos = contour_pos.at(i);
+                // grid_map::Index idx = frontier_vec.at(i).at(j);
+                // grid_map::Position pos;
+                // gt_map.getPosition(idx, pos);
+                geometry_msgs::Point pt; 
+                pt.x = pos(0,0); pt.y = pos(1,0); pt.z = 0.0;
+                // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
+                contour_vec.push_back(pt);
+            // }
+        }
+        visualization_msgs::Marker contour_marker = generate_marker(contour_vec, 0.0, 1.0, 0.0, 1);
+
+        vector<geometry_msgs::Point> sorted_vec; 
+        // std::cout << "Size of frontier pos " << frontier_pos.size() << std::endl; 
+        for(int i=0; i< sorted_pos.size(); i++){
+            double r = dis(gen)/20.0; 
+            // for(int j=0; j<frontier_pos.at(i).size(); j++){
+                num++;
+                Eigen::Vector2d pos = sorted_pos.at(i);
+                // grid_map::Index idx = frontier_vec.at(i).at(j);
+                // grid_map::Position pos;
+                // gt_map.getPosition(idx, pos);
+                geometry_msgs::Point pt; 
+                pt.x = pos(0,0); pt.y = pos(1,0); pt.z = 0.0;
+                // ROS_INFO("%d th Frontier point %f, %f in Index %d, %d", i*frontier_vec.size()+j, pt.x, pt.y, idx(0,0), idx(1,0));
+                sorted_vec.push_back(pt);
+            // }
+        }
+        visualization_msgs::Marker sorted_marker = generate_marker(sorted_vec, 0.0, 0.0, 1.0, 1);
+
         marker_vec=marker;
         
         pub_occ.publish(occ_grid);
         pub_belief.publish(belief_grid);
         // for(int i=0;i<marker_vec.size(); i++){
         pub_vis_ft.publish(marker_vec);
+        pub_vis_contour.publish(contour_marker);
+        pub_vis_sorted.publish(sorted_marker);
         // }
         cur_pos[0] = cur_pos[0] + 0.1;
         cur_pos[1] = cur_pos[1] + 0.1;

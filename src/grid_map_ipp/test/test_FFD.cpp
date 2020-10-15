@@ -136,7 +136,9 @@ int main(int argc, char** argv)
     //Sensor generation 
     double range_max = 10.0; double range_min = 0.5; 
     double hangle_max = 180; double hangle_min = -180; double angle_resol = 1.0;
+    
     double resol = 1.0;
+    nh.param("resol", resol, 1.0);
 
     RayTracer::Raytracer raytracer(100.0, 100.0, 5, obstacles);
     RayTracer::Lidar_sensor lidar(range_max, range_min, hangle_max, hangle_min, angle_resol, 100.0, 100.0, resol, raytracer);

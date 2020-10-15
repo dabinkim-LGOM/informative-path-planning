@@ -109,23 +109,32 @@ namespace grid_map{
     vector<grid_map::Index> Ft_Detector::Sort_Polar( vector<grid_map::Index> lr_idx, grid_map::Index pose_idx ){
         //simple bubblesort
         bool swapped = 0;
-        do
+        for(unsigned int i=0; i< lr_idx.size(); i++)
         {
             swapped = 0;
             // grid_map::Index pose_idx; 
 
-            for(unsigned int i=1; i<lr_idx.size(); i++)
+            for(unsigned int j=0; j<lr_idx.size()-1; j++)
             {
-                if( CrossProduct(pose_idx[0], pose_idx[1], lr_idx[i-1][0],lr_idx[i-1][1],lr_idx[i][0],lr_idx[i][1]) > 0 )  //sorting clockwise
+                if( CrossProduct(pose_idx[0], pose_idx[1], lr_idx[j][0],lr_idx[j][1],lr_idx[j+1][0],lr_idx[j+1][1]) > 0 )  //sorting clockwise
                 {
-                    grid_map::Index swap = lr_idx[i-1];
-                    lr_idx[i-1] = lr_idx[i];
-                    lr_idx[i] = swap;
+                    grid_map::Index swap = lr_idx[j];
+                    lr_idx[j] = lr_idx[j+1];
+                    lr_idx[j+1] = swap;
                     swapped = 1;
                 }
             }
+            if(swapped==0)
+                std::cout << "[SORT] No swap!" << std::endl; 
+                break; 
         }
-        while(swapped);
+
+        std::cout << "Sorted" << std::endl; 
+        for(int i=0; i<lr_idx.size(); i++){
+            // std::cout << "x: " << sorted[i][0] << " y: " << sorted[i][1] << std::endl; 
+            float val = CrossProduct(pose_idx[0], pose_idx[1], lr_idx[i][0], lr_idx[i][1], lr_idx[i+1][0], lr_idx[i+1][1]);
+            std::cout << "Index : " << i << " value: " << val << std::endl; 
+        }        
 
         return lr_idx;
     }
@@ -196,7 +205,7 @@ namespace grid_map{
 
         // vector<grid_map::Index> sorted = Sort_Polar(lr_idx, pose_idx);
         sorted = Sort_Polar(lr_idx, pose_idx);
-        
+
         // get the contour from laser readings
         grid_map::Index prev_idx = sorted.back();
         sorted.pop_back();

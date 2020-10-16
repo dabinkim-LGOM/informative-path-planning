@@ -69,6 +69,10 @@ namespace grid_map{
         grid_map::Size map_size = map.getSize();
         grid_map::Index locations[N_S]; 
         get_neighbours(locations, point);
+        // for(int i=0; i<N_S; i++){
+        //     if(locations[i][0] < 0 || locations[i][0] > map_size[0] || locations[i][1] < 0 || locations[i][1] > map_size[1])
+        //         locations[i] = point;
+        // }
 
         int found = 0;
         for(int i = 0; i < N_S; ++i) {
@@ -109,32 +113,37 @@ namespace grid_map{
     vector<grid_map::Index> Ft_Detector::Sort_Polar( vector<grid_map::Index> lr_idx, grid_map::Index pose_idx ){
         //simple bubblesort
         bool swapped = 0;
+      
+        std::vector<double> thet_vec; 
+        for(unsigned int i=0; i< lr_idx.size(); i++){
+            double thet1 = atan2( lr_idx[i][1]-pose_idx[1], lr_idx[i][0]-pose_idx[0]);
+            // std::cout << "Angle: " << thet1 << std::endl; 
+            thet_vec.emplace_back(thet1);
+        }
+        
         for(unsigned int i=0; i< lr_idx.size(); i++)
         {
             swapped = 0;
             // grid_map::Index pose_idx; 
+            
+            for(unsigned int j=0; j<lr_idx.size()-i-1; j++)
+            {   
+                // if( CrossProduct(pose_idx[0], pose_idx[1], lr_idx[j][0], lr_idx[j][1], lr_idx[j+1][0], lr_idx[j+1][1]) < 0 )  //sorting clockwise
+                if(thet_vec[j] <thet_vec[j+1])
+                {   double tmp_thet = thet_vec[j];
+                    thet_vec[j] = thet_vec[j+1];
+                    thet_vec[j+1] = tmp_thet; 
 
-            for(unsigned int j=0; j<lr_idx.size()-1; j++)
-            {
-                if( CrossProduct(pose_idx[0], pose_idx[1], lr_idx[j][0],lr_idx[j][1],lr_idx[j+1][0],lr_idx[j+1][1]) > 0 )  //sorting clockwise
-                {
                     grid_map::Index swap = lr_idx[j];
                     lr_idx[j] = lr_idx[j+1];
                     lr_idx[j+1] = swap;
                     swapped = 1;
                 }
             }
-            if(swapped==0)
-                std::cout << "[SORT] No swap!" << std::endl; 
-                break; 
+            // if(swapped==0)
+            //     std::cout << "[SORT] No swap!" << std::endl; 
+            //     break; 
         }
-
-        std::cout << "Sorted" << std::endl; 
-        for(int i=0; i<lr_idx.size(); i++){
-            // std::cout << "x: " << sorted[i][0] << " y: " << sorted[i][1] << std::endl; 
-            float val = CrossProduct(pose_idx[0], pose_idx[1], lr_idx[i][0], lr_idx[i][1], lr_idx[i+1][0], lr_idx[i+1][1]);
-            std::cout << "Index : " << i << " value: " << val << std::endl; 
-        }        
 
         return lr_idx;
     }
@@ -195,6 +204,7 @@ namespace grid_map{
     vector<grid_map::Index> Ft_Detector::FFD( grid_map::Position pose, vector<grid_map::Index> lr_idx, const grid_map::GridMap& map){
         contour.clear();
         sorted.clear();
+        grid_map::Size map_size = map.getSize();
         // for(int i=0; i< lr_idx.size(); i++){
         //     std::cout << "[RAY] x: " << lr_idx[i][0] << " y: " << lr_idx[i][1] << std::endl; 
         // }
@@ -219,8 +229,9 @@ namespace grid_map{
             {
                 contour.push_back(line.points[j]);
             }
+            prev_idx = sorted[i];
         }
-        std::cout << "[FFD] Contour length: " << contour.size() << std::endl; 
+        // std::cout << "[FFD] Contour length: " << contour.size() << std::endl; 
 
         // std::cout << "CHECKPT 2" << std::endl;
         // extract new frontiers from contour
@@ -280,9 +291,9 @@ namespace grid_map{
             }
         }
 
-        std::cout << "Type1: " << type1 << " Type2: " << type2 << " Type3: " << type3 << " Type4: " << type4 << std::endl; 
-        std::cout << "# of Contour: " << contour.size()<<  std::endl;
-        std::cout << "# of New Frontiers: " << NewFrontiers.size() << std::endl; 
+        // std::cout << "Type1: " << type1 << " Type2: " << type2 << " Type3: " << type3 << " Type4: " << type4 << std::endl; 
+        // std::cout << "# of Contour: " << contour.size()<<  std::endl;
+        // std::cout << "# of New Frontiers: " << NewFrontiers.size() << std::endl; 
         
         
         // maintainance of previously detected frontiers
@@ -302,7 +313,7 @@ namespace grid_map{
             for(int y=y_min; y<=y_max; y++)
             {   
                 grid_map::Index p_idx(x,y); 
-
+                // std::cout << "x: " << x << " y: " << y << std::endl; 
                 // for(unsigned int i=0; i<frontiersDB.size(); i++){
                 //     auto iter = std::find(frontiersDB[i].begin(), frontiersDB[i].end(), p_idx);
                 //     if(iter!=frontiersDB[i].end()){
@@ -313,29 +324,41 @@ namespace grid_map{
                 // if( is_frontier_point(map, p_idx) )
                 // {
                     // split the current frontier into two partial frontiers
-                    int Enables_f = -1;
-                    int Enables_p = -1;
-                    for(unsigned int i=0; i<frontiersDB.size(); i++)
-                    {
-                        for(unsigned int j=0; j<frontiersDB[i].size(); j++)
+                int Enables_f = -1;
+                int Enables_p = -1;
+                for(unsigned int i=0; i<frontiersDB.size(); i++)
+                {
+                    for(unsigned int j=0; j<frontiersDB[i].size(); j++)
+                    {   
+                        // std::cout << "Frontier DB position x: " << frontiersDB[i][j][0] << " y: " << frontiersDB[i][j][1] << std::endl;  
+                        if(  frontiersDB[i][j][0] == p_idx[0] && frontiersDB[i][j][1] == p_idx[1] )
                         {   
-                            // std::cout << "Frontier DB position x: " << frontiersDB[i][j][0] << " y: " << frontiersDB[i][j][1] << std::endl;  
-                            if(  frontiersDB[i][j][0] == p_idx[0] && frontiersDB[i][j][1] == p_idx[1] )
-                            {   
-                                // std::cout << "[ELIM] DETECT from FrontiersDB" << std::endl; 
-                                Enables_f = i;
-                                Enables_p = j;
-                            }
-                        }//for j
-                    }//for i
+                            // std::cout << "[ELIM] DETECT from FrontiersDB" << std::endl; 
+                            Enables_f = i;
+                            Enables_p = j;
+                        }
+                    }//for j
+                }//for i
 
-                    if(Enables_f == -1 || Enables_p == -1)
-                        continue;
+                if(Enables_f == -1 || Enables_p == -1)
+                    continue;
 
-                    if(!is_frontier_point(map, frontiersDB[Enables_f][Enables_p])){
-                        frontiersDB.erase(frontiersDB.begin()+Enables_f);
-                        continue;
+                for(int m=0; m<frontiersDB[Enables_f].size(); m++){
+                    auto xxx = frontiersDB[Enables_f][Enables_p];
+                    if(is_in_map(map_size, xxx)){
+                        if(!is_frontier_point(map, frontiersDB[Enables_f][Enables_p])){
+                    // if(!is_frontier_point(map, p_idx) ){
+                        frontiersDB[Enables_f].erase(frontiersDB[Enables_f].begin()+Enables_p);
+                        // frontiersDB.erase(frontiersDB.begin()+Enables_f);
+                        // std::cout << "[ERASED]" << std::endl; 
+                        // continue;
+                        }
                     }
+                }
+
+                if( is_frontier_point(map, p_idx) )
+                {
+                    // split the current frontier into two partial frontiers
 
                     Frontier f1;  Frontier f2;
                     for(int i=0; i<=Enables_p; i++)
@@ -349,12 +372,13 @@ namespace grid_map{
                     frontiersDB.erase(frontiersDB.begin() + Enables_f);
                     
                     //DABIN 
-                    // frontiersDB.emplace_back(f1);
-                    // frontiersDB.emplace_back(f2);
-                // }//if p is a frontier
+                    frontiersDB.emplace_back(f1);
+                    frontiersDB.emplace_back(f2);
+                }//if p is a frontier
 
             } //for y
         }//for x
+        // std::cout << "Before Active Area" << std::endl; 
 
         //Storing new detected frontiers
         int ActiveArea[ mapsize[0]][mapsize[1]];
@@ -362,32 +386,44 @@ namespace grid_map{
         {
             for(unsigned int j=0; j<frontiersDB[i].size(); j++)
             {
-                ActiveArea[frontiersDB[i][j][0]][frontiersDB[i][j][1]] = i;
+                ActiveArea[frontiersDB[i][j][0]][frontiersDB[i][j][1]] = 1;
             }
         }
+        // std::cout << "Merge New Frontiers" << std::endl; 
+        // std::cout << "Size of NewFrontier: " << NewFrontiers.size() << std::endl; 
         //For all NewFrontiers, 
         for(unsigned int i=0; i<NewFrontiers.size(); i++)
         {
             Frontier f = NewFrontiers[i];
+            // std::cout << "Size of " << i+1 <<"-th Frontier: " << f.size() << std::endl; 
+
             bool overlap = 0;
             for(unsigned int j=0; j<f.size(); j++)
             {
-                if( ActiveArea[f[j][0]][f[j][1]] != 0 ) //if f (element of NewFrontier) overlaps with an existing frontier 
+                // std::cout << "CHECK1" << std::endl; 
+                if( ActiveArea[f[j][0]][f[j][1]] ==1 ) //if f (element of NewFrontier) overlaps with an existing frontier 
                 {   num_merge++; 
 
                     int exists = ActiveArea[f[j][0]][f[j][1]];
                     //merge f and exists
+                    // std::cout << "CHECK2" << std::endl; 
+
                     for(unsigned int merged=0; merged<f.size(); merged++){
                         //If there is no f[merged], then it is inserted  (Union, not Addition)
                         bool flag = 0; 
+                        // std::cout << "CHECK3" << std::endl; 
+
                         // auto new_pt = std::find(frontiersDB[exists].begin(), frontiersDB[exists].end(), f[merged]);
                         // if(new_pt == frontiersDB[exists].end())
+                        // std::cout << "Position   x: " << f[j][0] << " y: " << f[j][1] << std::endl; 
+                        // std::cout << "exists: " << exists << std::endl; 
                         for(int i=0; i< frontiersDB[exists].size(); i++){
                             if(frontiersDB[exists][i][0] == f[merged][0] && frontiersDB[exists][i][1] == f[merged][1]){
                                 flag = 1;
                                 break;
                             }
                         }
+                        // std::cout << "CHECK4" << std::endl; 
                         if(flag==0)
                             frontiersDB[exists].push_back(f[merged]);
                     }
@@ -403,6 +439,7 @@ namespace grid_map{
             }
         }//for i
 
+        // std::cout << "Remove Empty Frontier" << std::endl; 
         //remove empty frontier
         for(unsigned int i=0; i<frontiersDB.size(); i++)
         {

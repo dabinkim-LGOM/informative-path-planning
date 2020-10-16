@@ -2,8 +2,8 @@
 
 <launch>
     <node name="test_FFD" pkg="grid_map_ipp" type="test_FFD" output="screen">
-        <param name="x_idx" value="51"/>
-        <param name="y_idx" value="50"/> 
+        <param name="x_idx" value="1"/>
+        <param name="y_idx" value="1"/> 
         <param name="resol" value="1.0"/>
     </node>
 

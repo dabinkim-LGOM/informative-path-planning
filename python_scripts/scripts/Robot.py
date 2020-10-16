@@ -361,6 +361,8 @@ class Nonmyopic_Robot(Robot):
             '''
             time_prev = time.clock()
             frontier_set = self.lidar.frontier_detection(np.array([data[-1,0],data[-1,1]]))
+            time_1 = time.clock()
+            print "Frontier Module: ", time_1 - time_prev
 
             # # print("Frontier test")
             # # print("Data", np.array([data[-1,0],data[-1,1]]))
@@ -370,7 +372,6 @@ class Nonmyopic_Robot(Robot):
             #                           aq_func=self.aquisition_function, time=t, belief=self.GP) 
             # time_1 = time.clock()
 
-            # print "Frontier Module: ", time_1 - time_prev
 
             # selected_ft = ft_module.get_selected_frontier()
             # time_2 = time.clock()
@@ -391,7 +392,7 @@ class Nonmyopic_Robot(Robot):
             Visualization 
             '''
             # visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, True, self.f_rew, frontier_set, selected_ft, SFC, True)
-            visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, True, self.f_rew)
+            visual = vis.visualization(np.array([data[-1,0],data[-1,1]]), self.ranges[1], 1.0, self.lidar, True, self.f_rew, frontier=frontier_set, is_frontier=True)
             visual.visualization(t)
             
             if(self.save_fig == True):

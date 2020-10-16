@@ -77,21 +77,24 @@ class visualization():
         return fig
         
     def show_frontier(self):
-        for pt in self.all_frontier:
-            # print('x=', pt[0], 'y=', pt[1])
-            plt.scatter(x=pt[0], y=pt[1], c='r', s=3)
-        for pt in self.selected_ft:
-            # print('x=', pt[0], 'y=', pt[1])
-            plt.scatter(x=pt[0], y=pt[1], c='b', s=3)
+        if self.all_frontier is not None:
+            for pt in self.all_frontier:
+                # print('x=', pt[0], 'y=', pt[1])
+                plt.scatter(x=pt[0], y=pt[1], c='r', s=3)
+        if self.selected_ft is not None:
+            for pt in self.selected_ft:
+                # print('x=', pt[0], 'y=', pt[1])
+                plt.scatter(x=pt[0], y=pt[1], c='b', s=3)
         
 
     def show_SFC(self, ax):
-        for box_vec in self.SFC:
-            # for box in box_vec:
-            box = box_vec[0]
-            rect = patches.Rectangle((box[0],box[1]),box[2]-box[0],box[3]-box[1],linewidth=1, edgecolor='k',facecolor='none')
-            # Add the patch to the Axes
-            ax.add_patch(rect)
+        if self.SFC is not None: 
+            for box_vec in self.SFC:
+                # for box in box_vec:
+                box = box_vec[0]
+                rect = patches.Rectangle((box[0],box[1]),box[2]-box[0],box[3]-box[1],linewidth=1, edgecolor='k',facecolor='none')
+                # Add the patch to the Axes
+                ax.add_patch(rect)
 
 
         

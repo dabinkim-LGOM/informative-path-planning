@@ -227,7 +227,7 @@ namespace RayTracer{
     }
 
     std::vector<Eigen::Vector2d > Lidar_sensor::FFD(grid_map::Position pos_euc){
-        std::cout << "[FFD] Currnet position   x: " << pos_euc[0] << " y: " << pos_euc[1] << std::endl; 
+        // std::cout << "[FFD] Currnet position   x: " << pos_euc[0] << " y: " << pos_euc[1] << std::endl; 
         cur_frontier_set_.clear(); 
         // grid_map::Position pos_grid = grid_map::euc_to_gridref()
         //Convert conventional xy to grid_map xy coordinate
@@ -248,7 +248,7 @@ namespace RayTracer{
             std::cout << "##########There is no new scan#############" << std::endl; 
         }
         vector<grid_map::Index> frontier_vector = ft_.get_frontier();
-        std::cout << "[IPP] Size of Frontier vector: " << frontier_vector.size() << std::endl; 
+        // std::cout << "[IPP] Size of Frontier vector: " << frontier_vector.size() << std::endl; 
         // std::cout << "After Get Frontier" << std::endl; 
         //Convert index from grid_map to conventional xy cooridnate
         vector<Eigen::Vector2d> frontier_position; 
@@ -256,11 +256,11 @@ namespace RayTracer{
                 grid_map::Position trans_pos; 
                 belief_map_.getPosition(frontier_vector[i], trans_pos);
                 
-                // Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, size); 
+                Eigen::Vector2d conv_pos = grid_map::grid_to_eucref(trans_pos, size); 
                 // conv_pos(0) = x_size /2.0 - trans_pos(1);
                 // conv_pos(1) = y_size/2.0 + trans_pos(0);
                 // std::cout << "EUC POSITION  x: " << conv_pos[0] << " y: " << conv_pos[1] << std::endl; 
-                frontier_position.push_back(trans_pos);
+                frontier_position.push_back(conv_pos);
         }
         cur_frontier_set_ = frontier_position; 
         // return frontier_position;
